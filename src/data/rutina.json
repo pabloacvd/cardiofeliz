@@ -1,0 +1,122 @@
+{
+  "usuario": "Juli",
+  "edad": 33,
+  "objetivo": "Quema máxima de grasa sin hipertrofia, bajo impacto articular",
+  "dias_entrenamiento": [
+    {
+      "id": "dia_1",
+      "nombre": "Día 1: Zona Cardio & Bici/SkiErg",
+      "ubicacion": "Rincón de cardio",
+      "calentamiento": "5 min suaves en SkiErg o Bici subiendo frecuencia cardíaca.",
+      "bloques": [
+        {
+          "tipo": "EMOM",
+          "nombre": "Bloque A (EMOM 16 Min - 4 Rondas)",
+          "duracion_minutos": 16,
+          "ejercicios": [
+            { "minuto": 1, "detalle": "12-15 Cal en Assault Bike" },
+            { "minuto": 2, "detalle": "15 Cal en SkiErg" },
+            { "minuto": 3, "detalle": "45 seg de Escaladora rápida" },
+            { "minuto": 4, "detalle": "Descanso completo" }
+          ]
+        },
+        {
+          "tipo": "AMRAP",
+          "nombre": "Bloque B (AMRAP 15 Min)",
+          "duracion_minutos": 15,
+          "ejercicios": [
+            { "detalle": "300m en SkiErg (ritmo fuerte)" },
+            { "detalle": "15 Cal en Assault Bike" },
+            { "detalle": "1 min Caminata inclinada activa en cinta" }
+          ]
+        },
+        {
+          "tipo": "FINISHER",
+          "nombre": "Finisher Core (3 Rondas)",
+          "ejercicios": [
+            { "detalle": "30 seg Russian Twists con disco" },
+            { "detalle": "30 seg Mountain Climbers tradicionales" },
+            { "detalle": "30 seg Descanso" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dia_2",
+      "nombre": "Día 2: Zona Mancuernas",
+      "ubicacion": "Sector de pesas libres",
+      "calentamiento": "5 min movilidad articular + 2 rondas (10 sentadillas libres, 10 puentes de glúteo, 15 jumping jacks).",
+      "bloques": [
+        {
+          "tipo": "TRISERIE",
+          "nombre": "Bloque A (Triserie Metabólica - 4 Rondas)",
+          "descanso_entre_rondas": "45 seg",
+          "ejercicios": [
+            { "detalle": "15 Thrusters con mancuernas (livianas)" },
+            { "detalle": "12 Remo inclinado con mancuernas" },
+            { "detalle": "12 Zancadas atrás alternadas con mancuernas" }
+          ]
+        },
+        {
+          "tipo": "AMRAP",
+          "nombre": "Bloque B (AMRAP 12 Min)",
+          "duracion_minutos": 12,
+          "ejercicios": [
+            { "detalle": "12 Peso muerto rumano con mancuernas" },
+            { "detalle": "10 Press de pecho con mancuernas en banco" },
+            { "detalle": "12 Sentadillas sumo con mancuerna" },
+            { "detalle": "15 Swings con mancuerna" }
+          ]
+        },
+        {
+          "tipo": "FINISHER",
+          "nombre": "Finisher Core (3 Rondas)",
+          "ejercicios": [
+            { "detalle": "30 seg Bicicletas abdominales" },
+            { "detalle": "30 seg Elevaciones de piernas / Crunches invertidos" },
+            { "detalle": "30 seg Descanso" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dia_3",
+      "nombre": "Día 3: Piso Superior (Funcional & Kettlebell)",
+      "ubicacion": "Piso superior",
+      "calentamiento": "5 min salto suave de soga o movilidad dinámica de cadera y hombros.",
+      "bloques": [
+        {
+          "tipo": "FOR_TIME",
+          "nombre": "Bloque A (For Time - Cap 15 Min)",
+          "cap_minutos": 15,
+          "ejercicios": [
+            { "detalle": "50 Kettlebell Swings" },
+            { "detalle": "40 Slam Balls (Balón medicinal contra el suelo)" },
+            { "detalle": "30 Burpees tradicionales fluidos" },
+            { "detalle": "40 Mountain Climbers Cruzados" },
+            { "detalle": "15 Burpees" }
+          ]
+        },
+        {
+          "tipo": "EMOM",
+          "nombre": "Bloque B (EMOM 12 Min - 3 Rondas)",
+          "duracion_minutos": 12,
+          "ejercicios": [
+            { "minuto": 1, "detalle": "15 Kettlebell High Pulls" },
+            { "minuto": 2, "detalle": "15 Sit-ups / Crunches en colchoneta" },
+            { "minuto": 3, "detalle": "10 Burpees controlados" },
+            { "minuto": 4, "detalle": "Descanso" }
+          ]
+        },
+        {
+          "tipo": "TABATA",
+          "nombre": "Finisher Core TABATA (4 Min)",
+          "estructura": "20 seg trabajo / 10 seg descanso x 8 rondas",
+          "ejercicios": [
+            { "detalle": "Intercalar Russian Twists rápidos y Tijeras abdominales (Scissors)" }
+          ]
+        }
+      ]
+    }
+  ]
+}
