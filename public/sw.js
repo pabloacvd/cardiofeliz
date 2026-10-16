@@ -1,12 +1,9 @@
 const CACHE_NAME = 'cardiofeliz-v1';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest',
-  '/icon.svg',
-  '/src/main.tsx',
-  '/src/index.css',
-  '/src/App.tsx'
+  './',
+  './index.html',
+  './manifest.webmanifest',
+  './icon.svg'
 ];
 
 self.addEventListener('install', (event) => {
