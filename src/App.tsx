@@ -117,7 +117,7 @@ export default function App() {
       )}
 
       {/* Main Container */}
-      <main className="flex-1 max-w-md w-full mx-auto px-4 py-3">
+      <main className={`flex-1 max-w-md w-full mx-auto ${currentView === 'active_workout' ? '' : 'px-4 py-3'}`}>
         {currentView === 'home' && (
           <HomeView
             rutina={rutina}
