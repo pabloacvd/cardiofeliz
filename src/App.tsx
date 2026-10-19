@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { HomeView } from './views/HomeView';
 import { DayDetailView } from './views/DayDetailView';
 import { ActiveWorkoutView } from './views/ActiveWorkoutView';
+import { RoutineEditorView } from './views/RoutineEditorView';
 import { WorkoutCompleteModal } from './components/WorkoutCompleteModal';
 import { useWakeLock } from './hooks/useWakeLock';
 import { useAudioBeeps } from './hooks/useAudioBeeps';
@@ -26,11 +27,11 @@ import { buildToasts, withClaimedAchievements } from './utils/celebrations';
 
 const AnalyticsView = React.lazy(() => import('./views/AnalyticsView'));
 
-type ViewMode = 'home' | 'day_detail' | 'active_workout' | 'analytics';
+type ViewMode = 'home' | 'day_detail' | 'active_workout' | 'analytics' | 'settings';
 
 export default function App() {
   const user = useCurrentUser();
-  const { rutina } = useRoutine(user.userId, user.displayName);
+  const { rutina, saveRoutine, syncStatus: routineSyncStatus } = useRoutine(user.userId, user.displayName);
   const [currentView, setCurrentView] = useState<ViewMode>('home');
   // El día se guarda por id y se deriva de la rutina vigente: un cambio de rutina no deja una copia vieja.
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
@@ -176,6 +177,13 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleOpenSettings = () => {
+    setSelectedDayId(null);
+    setActiveBlock(null);
+    setCurrentView('settings');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleSaveWeightFromAnalytics = (kg: number) => {
     if (profileWeight.setWeightKg(kg)) {
       fillMissingCalories(kg);
@@ -211,6 +219,7 @@ export default function App() {
             showCoach={!coachDismissal.dismissed}
             onDismissCoach={coachDismissal.dismiss}
             onOpenVacations={() => setIsVacationSheetOpen(true)}
+            onOpenRoutineSettings={handleOpenSettings}
             quickLog={{
               today,
               activities,
@@ -246,6 +255,16 @@ export default function App() {
             diaNombre={selectedDay.nombre}
             onExit={handleExitActiveWorkout}
             onBlockCompleted={handleBlockCompleted}
+          />
+        )}
+
+        {currentView === 'settings' && (
+          <RoutineEditorView
+            rutina={rutina}
+            onSave={saveRoutine}
+            onBack={handleGoHome}
+            syncStatus={routineSyncStatus}
+            hasActiveBlockProgressToday={Object.keys(progress).length > 0}
           />
         )}
 

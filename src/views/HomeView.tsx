@@ -6,7 +6,7 @@ import { CoachCard, GameStatus } from '../components/GameStatus';
 import { DailyMissionsCard } from '../components/DailyMissionsCard';
 import { WeeklyChallengeCard } from '../components/WeeklyChallengeCard';
 import type { GameSummary } from '../gamification';
-import { Target, HeartHandshake } from 'lucide-react';
+import { Target, HeartHandshake, Dumbbell } from 'lucide-react';
 
 interface HomeViewProps {
   rutina: RutinaData;
@@ -18,6 +18,7 @@ interface HomeViewProps {
   showCoach: boolean;
   onDismissCoach: () => void;
   onOpenVacations?: () => void;
+  onOpenRoutineSettings?: () => void;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
@@ -29,6 +30,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   showCoach,
   onDismissCoach,
   onOpenVacations,
+  onOpenRoutineSettings,
 }) => {
   return (
     <div className="space-y-5 animate-fadeIn">
@@ -87,7 +89,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
             Selecciona tu entrenamiento de hoy:
           </h3>
-          <span className="text-[11px] text-zinc-500">3 días disponibles</span>
+          <span className="text-[11px] text-zinc-500">
+            {rutina.dias_entrenamiento.length}{' '}
+            {rutina.dias_entrenamiento.length === 1 ? 'día disponible' : 'días disponibles'}
+          </span>
         </div>
 
         <div className="space-y-3.5">
@@ -115,6 +120,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
           Tip: La pantalla de tu iPhone se mantendrá encendida durante todo el temporizador automáticamente.
         </p>
       </div>
+
+      {/* Botón Mi rutina */}
+      {onOpenRoutineSettings && (
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={onOpenRoutineSettings}
+            className="w-full py-3.5 px-4 rounded-2xl bg-surface-900 border border-zinc-800 hover:border-zinc-700 active:scale-[0.98] text-zinc-200 font-bold text-sm flex items-center justify-center gap-2.5 transition-all shadow-md"
+          >
+            <Dumbbell className="w-4 h-4 text-cardio-primary" />
+            <span>Mi rutina (Personalizar)</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

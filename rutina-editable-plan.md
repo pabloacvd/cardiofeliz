@@ -187,7 +187,7 @@ Al reemplazar el JSON también se corrige la clave `"calentami  ento"` (con espa
 
 ## Sub-tarea 5: Pantalla "Mi rutina" y editor
 
-- **Status:** `[ ] pending`
+- **Status:** `[x] done`
 - **Intent:** dar una pantalla de edición completa, separada del uso diario y cómoda en celular.
 - **Expected Outcomes:**
   - Botón "Mi rutina" al final de Home. Nueva vista `settings` en `App`, sin tocar el flujo de entrenamiento.
@@ -206,6 +206,25 @@ Al reemplazar el JSON también se corrige la clave `"calentami  ento"` (con espa
   5. Mostrar un aviso corto si se guardan cambios mientras hay bloques completados hoy. El progreso se conserva por id.
   6. Ocultar el `Header` de sync y navegación solo si hace falta. Mantener el botón de volver consistente con las otras vistas.
 - **Relevant Context:** [`src/App.tsx`](src/App.tsx), [`src/views/HomeView.tsx`](src/views/HomeView.tsx), [`src/views/DayDetailView.tsx`](src/views/DayDetailView.tsx) como referencia de estilo, [`src/components/Header.tsx`](src/components/Header.tsx), [`src/components/WeightSheet.tsx`](src/components/WeightSheet.tsx) y [`src/components/VacationSheet.tsx`](src/components/VacationSheet.tsx) como referencia de formularios.
+
+### Notas de implementación (contexto para sub-tareas siguientes)
+
+- **Módulo de lógica pura:** [`src/utils/routineEdit.ts`](src/utils/routineEdit.ts) contiene funciones inmutables y puras para todas las operaciones sobre el borrador (`cloneRutina`, `hasRoutineChanges`, `updateRoutineMeta`, `addDay`, `updateDay`, `removeDay`, `moveDay`, `addBlock`, `updateBlock`, `changeBlockType`, `duplicateBlock`, `removeBlock`, `moveBlock`, `addExercise`, `updateExercise`, `removeExercise`, `moveExercise`, `regenerateTabataStructure`, `renumberEmomExercises`).
+- **Comportamiento Tabata / Triserie:** `updateBlock` regenera automáticamente `estructura` en bloques Tabata cuando cambian rondas o tiempos de trabajo/descanso, y elimina el string legacy `descanso_entre_rondas` en Triserie/Density cuando se actualiza `descanso_seg`.
+- **Comportamiento EMOM:** `changeBlockType`, `addExercise`, `removeExercise`, `moveExercise` renumeran `minuto` (1..N) automáticamente al agregar/mover/eliminar ejercicios en bloques EMOM y limpian `minuto` al cambiar de EMOM a otros tipos.
+- **Subcomponentes creados:** en `src/components/routine-editor/` (`RoutineMetaEditor`, `DayEditor`, `BlockEditor`, `ExerciseEditor`, `RoutineBackupSection`).
+- **Hook y navegación en `App.tsx`:** `App.tsx` desestructura `{ rutina, saveRoutine, syncStatus: routineSyncStatus }` de `useRoutine` y pasa el estado y callbacks a `RoutineEditorView` en la vista `settings`. Al entrar se limpian `selectedDayId` y `activeBlock`.
+- **Lugar para Sub-tarea 6:** `RoutineBackupSection` (`src/components/routine-editor/RoutineBackupSection.tsx`) ya está ubicado al final de `RoutineEditorView` con los botones de Exportar, Importar y Restaurar como placeholders deshabilitados. Para enganchar la Sub-tarea 6:
+  - Reemplazar los botones deshabilitados por los handlers reales.
+  - Para cargar un borrador importado: validar con `validateRutina(parsed)` + `normalizeRutina(parsed)` y hacer `setDraft({ ...parsedNormalized, usuario: draft.usuario })`.
+  - Para restaurar original: llamar a `getDefaultRoutine(draft.usuario)` de `src/utils/routineSync.ts` y hacer `setDraft(defaultRutina)`.
+- **Para Sub-tarea 7 (Pruebas manuales a realizar):**
+  - Entrar a "Mi rutina" desde Home.
+  - Modificar objetivo/edad, agregar/editar/reordenar/duplicar/borrar bloques y días.
+  - Comprobar que cancelar con cambios pide confirmación y descarta sin tocar la rutina activa.
+  - Guardar cambios y comprobar actualización en Home y detalle de días.
+  - Probar que un bloque completado hoy mantiene su estado completado por su id.
+- **Tests y compilación:** 21 tests nuevos en [`src/utils/__tests__/routineEdit.test.ts`](src/utils/__tests__/routineEdit.test.ts). Total: 260 tests pasando (`npm test`), `npm run build` (tsc + vite) pasa sin errores ni warnings.
 
 ## Sub-tarea 6: Importar, exportar y restaurar
 
