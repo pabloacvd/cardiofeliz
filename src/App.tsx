@@ -1,6 +1,5 @@
 import React, { useMemo, useState, Suspense } from 'react';
-import rutinaData from './data/rutina.json';
-import { RutinaData, DiaEntrenamiento, Bloque } from './types/workout';
+import { DiaEntrenamiento, Bloque } from './types/workout';
 import { Header } from './components/Header';
 import { HomeView } from './views/HomeView';
 import { DayDetailView } from './views/DayDetailView';
@@ -19,6 +18,7 @@ import { ToastStack } from './components/ToastStack';
 import { VacationSheet } from './components/VacationSheet';
 import { WeightSheet } from './components/WeightSheet';
 import { useBlockProgress } from './hooks/useBlockProgress';
+import { useRoutine } from './hooks/useRoutine';
 import { useCurrentUser } from './auth/AuthContext';
 import { computeGameSummary, logOutcome, todayKey, weekStart, withActivity, type LogOutcome } from './gamification';
 import { buildWorkoutDayActivity, isDayFinished, weekCompletedDays } from './utils/workoutDay';
@@ -30,11 +30,18 @@ type ViewMode = 'home' | 'day_detail' | 'active_workout' | 'analytics';
 
 export default function App() {
   const user = useCurrentUser();
-  const rutina = { ...(rutinaData as RutinaData), usuario: user.displayName };
+  const { rutina } = useRoutine(user.userId, user.displayName);
   const [currentView, setCurrentView] = useState<ViewMode>('home');
-  const [selectedDay, setSelectedDay] = useState<DiaEntrenamiento | null>(null);
+  // El día se guarda por id y se deriva de la rutina vigente: un cambio de rutina no deja una copia vieja.
+  const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
+  const selectedDay = useMemo<DiaEntrenamiento | null>(
+    () => rutina.dias_entrenamiento.find((d) => d.id === selectedDayId) ?? null,
+    [rutina, selectedDayId],
+  );
   const [activeBlock, setActiveBlock] = useState<Bloque | null>(null);
-  const [activeBlockIndex, setActiveBlockIndex] = useState<number | null>(null);
+  // Posición del bloque activo en el orden actual de la rutina (-1 si ya no existe en el día).
+  const activeBlockIndex =
+    selectedDay && activeBlock ? selectedDay.bloques.findIndex((b) => b.id === activeBlock.id) : -1;
 
   const [completedModal, setCompletedModal] = useState<{
     bloque: Bloque;
@@ -51,7 +58,7 @@ export default function App() {
   const { vacations, startVacation, endActiveVacation, deleteVacation } = useVacations(user.userId);
   const [isVacationSheetOpen, setIsVacationSheetOpen] = useState(false);
   const [isWeightSheetOpen, setIsWeightSheetOpen] = useState(false);
-  const { progress, recordBlock } = useBlockProgress(user.userId);
+  const { progress, recordBlock } = useBlockProgress(user.userId, rutina);
   const achievements = useAchievements(user.userId);
   const { toasts, push: pushToasts, dismiss: dismissToast } = useToasts();
 
@@ -85,27 +92,25 @@ export default function App() {
   // Navigation handlers
   const handleSelectDay = (dia: DiaEntrenamiento) => {
     unlockAudio();
-    setSelectedDay(dia);
+    setSelectedDayId(dia.id);
     setCurrentView('day_detail');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleStartBlock = (bloque: Bloque, blockIndex: number) => {
+  const handleStartBlock = (bloque: Bloque) => {
     unlockAudio();
     setActiveBlock(bloque);
-    setActiveBlockIndex(blockIndex);
     setCurrentView('active_workout');
   };
 
   const handleExitActiveWorkout = () => {
     setActiveBlock(null);
-    setActiveBlockIndex(null);
     setCurrentView('day_detail');
   };
 
   const handleBlockCompleted = (totalSeconds: number, rounds?: number) => {
-    if (selectedDay && activeBlock && activeBlockIndex !== null) {
-      const updated = recordBlock(selectedDay.id, activeBlockIndex, activeBlock, totalSeconds, rounds);
+    if (selectedDay && activeBlock) {
+      const updated = recordBlock(selectedDay.id, activeBlock, totalSeconds, rounds);
 
       // El día termina cuando todos sus bloques están completados (en cualquier orden).
       // Se guarda una sola actividad por día de rutina y fecha, aunque se repita algún bloque.
@@ -134,13 +139,11 @@ export default function App() {
   };
 
   const handleNextBlock = () => {
-    if (selectedDay && activeBlockIndex !== null) {
-      const nextIndex = activeBlockIndex + 1;
-      if (nextIndex < selectedDay.bloques.length) {
-        const nextBlock = selectedDay.bloques[nextIndex];
+    if (selectedDay && activeBlockIndex >= 0) {
+      const nextBlock = selectedDay.bloques[activeBlockIndex + 1];
+      if (nextBlock) {
         setCompletedModal(null);
         setActiveBlock(nextBlock);
-        setActiveBlockIndex(nextIndex);
         setCurrentView('active_workout');
         return;
       }
@@ -152,27 +155,23 @@ export default function App() {
   const handleBackToDayFromModal = () => {
     setCompletedModal(null);
     setActiveBlock(null);
-    setActiveBlockIndex(null);
     setCurrentView('day_detail');
   };
 
   const handleGoHome = () => {
-    setSelectedDay(null);
+    setSelectedDayId(null);
     setActiveBlock(null);
-    setActiveBlockIndex(null);
     setCurrentView('home');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const hasNextBlock =
-    Boolean(selectedDay &&
-    activeBlockIndex !== null &&
-    activeBlockIndex < selectedDay.bloques.length - 1);
+  const hasNextBlock = Boolean(
+    selectedDay && activeBlockIndex >= 0 && activeBlockIndex < selectedDay.bloques.length - 1,
+  );
 
   const handleOpenAnalytics = () => {
-    setSelectedDay(null);
+    setSelectedDayId(null);
     setActiveBlock(null);
-    setActiveBlockIndex(null);
     setCurrentView('analytics');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

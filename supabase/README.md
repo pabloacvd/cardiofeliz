@@ -18,6 +18,7 @@ CardioFeliz **comparte el proyecto Supabase con PlanDental** (`wzxgecdpfpnlzaawd
 | `cf_activities` | Entrenamientos, corridas y descansos activos |
 | `cf_achievements` | Logros desbloqueados |
 | `cf_vacations` | Períodos de vacaciones |
+| `cf_routines` | Rutina personalizada (por usuario) |
 
 ## Aplicar el esquema
 

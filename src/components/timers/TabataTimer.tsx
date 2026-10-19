@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BloqueTabata } from '../../types/workout';
 import { Play, Pause, Zap, Coffee } from 'lucide-react';
 import { formatSecondsOnly } from '../../utils/time';
+import { getTabataConfig } from '../../utils/timerConfig';
 
 interface TabataTimerProps {
   bloque: BloqueTabata;
@@ -22,9 +23,9 @@ export const TabataTimer: React.FC<TabataTimerProps> = ({
   playRest,
   unlockAudio,
 }) => {
-  const totalRounds = 8;
-  const workSeconds = 20;
-  const restSeconds = 10;
+  const { rounds: totalRounds, workSeconds, restSeconds } = getTabataConfig(bloque);
+  const cycleSeconds = workSeconds + restSeconds;
+  const totalMinutesLabel = `${Math.round(((totalRounds * cycleSeconds) / 60) * 10) / 10} Min`;
 
   const [currentRound, setCurrentRound] = useState(1);
   const [phase, setPhase] = useState<TabataPhase>('WORK');
@@ -76,7 +77,7 @@ export const TabataTimer: React.FC<TabataTimerProps> = ({
     }
 
     return () => clearInterval(interval);
-  }, [isRunning, phase, currentRound, totalRounds, totalElapsed, playCountdown, playGo, playRest, onComplete]);
+  }, [isRunning, phase, currentRound, totalRounds, workSeconds, restSeconds, totalElapsed, playCountdown, playGo, playRest, onComplete]);
 
   const handleToggle = () => {
     unlockAudio();
@@ -96,7 +97,7 @@ export const TabataTimer: React.FC<TabataTimerProps> = ({
         <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-zinc-400">
           <span className="flex items-center gap-1.5 text-red-400">
             <span className="w-2 h-2 rounded-full bg-red-400 animate-ping" />
-            TABATA (4 Min)
+            TABATA ({totalMinutesLabel})
           </span>
           <span className="bg-surface-800 text-white font-bold px-3 py-1 rounded-full border border-zinc-700">
             Intervalo {currentRound}/{totalRounds}
@@ -107,7 +108,15 @@ export const TabataTimer: React.FC<TabataTimerProps> = ({
         <div className="w-full bg-surface-900 rounded-full h-1.5 overflow-hidden">
           <div
             className="bg-red-500 h-full transition-all duration-300"
-            style={{ width: `${(((currentRound - 1) * 30 + (isWork ? (20 - secondsLeft) : (20 + (10 - secondsLeft)))) / 240) * 100}%` }}
+            style={{
+              width: `${Math.min(
+                (((currentRound - 1) * cycleSeconds +
+                  (isWork ? workSeconds - secondsLeft : workSeconds + (restSeconds - secondsLeft))) /
+                  (totalRounds * cycleSeconds)) *
+                  100,
+                100
+              )}%`,
+            }}
           />
         </div>
       </div>

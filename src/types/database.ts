@@ -113,6 +113,23 @@ export type VacationUpdate = {
   end_on?: string | null;
 };
 
+export type RoutineRow = {
+  user_id: string;
+  data: unknown;
+  updated_at: string;
+};
+
+export type RoutineInsert = {
+  user_id: string;
+  data: unknown;
+  updated_at?: string;
+};
+
+export type RoutineUpdate = {
+  data?: unknown;
+  updated_at?: string;
+};
+
 /**
  * Esquema completo de la base de datos para tipar el cliente Supabase
  */
@@ -141,6 +158,12 @@ export interface Database {
         Row: VacationRow;
         Insert: VacationInsert;
         Update: VacationUpdate;
+        Relationships: [];
+      };
+      cf_routines: {
+        Row: RoutineRow;
+        Insert: RoutineInsert;
+        Update: RoutineUpdate;
         Relationships: [];
       };
     };

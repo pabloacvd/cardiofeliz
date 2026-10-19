@@ -1,5 +1,5 @@
 import type { Activity } from '../types/gamification';
-import type { DiaEntrenamiento, TipoBloque } from '../types/workout';
+import type { DiaEntrenamiento, RutinaData, TipoBloque } from '../types/workout';
 import type { DateKey } from '../gamification/dates';
 
 /** Un bloque terminado hoy. Se guarda hasta que termina el día (o hasta que cambia la fecha). */
@@ -19,8 +19,33 @@ export type BlockProgress = Record<string, BlockProgressEntry>;
 /** Datos de una actividad antes de calcular id, XP y calorías. */
 export type ActivityDraft = Omit<Activity, 'id' | 'userId' | 'xpEarned' | 'caloriesKcal' | 'createdAt'>;
 
-export function blockKey(diaId: string, blockIndex: number): string {
-  return `${diaId}_bloque_${blockIndex}`;
+/** Clave de progreso de un bloque: día + id estable del bloque (no depende del orden en la rutina). */
+export function blockKey(diaId: string, blockId: string): string {
+  return `${diaId}::${blockId}`;
+}
+
+/**
+ * Convierte las claves viejas por índice (`dia_X_bloque_N`) a claves por id usando la rutina vigente.
+ * Es idempotente: las claves nuevas no se tocan y las viejas que no se pueden resolver
+ * (día borrado, índice fuera de rango) se conservan tal cual. Si la clave nueva ya existe, esa gana.
+ * No modifica el objeto original.
+ */
+export function migrateBlockProgress(progress: BlockProgress, rutina: RutinaData): BlockProgress {
+  const legacy = new Map<string, string>();
+  for (const dia of rutina.dias_entrenamiento) {
+    dia.bloques.forEach((bloque, i) => {
+      if (bloque.id) legacy.set(`${dia.id}_bloque_${i}`, blockKey(dia.id, bloque.id));
+    });
+  }
+
+  const out: BlockProgress = {};
+  const migrated: BlockProgress = {};
+  for (const [key, entry] of Object.entries(progress)) {
+    const target = legacy.get(key);
+    if (target === undefined) out[key] = entry;
+    else migrated[target] = entry;
+  }
+  return { ...migrated, ...out };
 }
 
 /** Descarta los bloques que no se completaron hoy: cada día de entrenamiento empieza de cero. */
@@ -32,9 +57,12 @@ export function pruneBlockProgress(progress: BlockProgress, today: DateKey): Blo
   return out;
 }
 
-/** El día está terminado cuando todos sus bloques están completados, sin importar el orden. */
+/** El día está terminado cuando todos sus bloques actuales están completados, sin importar el orden. */
 export function isDayFinished(dia: DiaEntrenamiento, progress: BlockProgress): boolean {
-  return dia.bloques.length > 0 && dia.bloques.every((_, i) => progress[blockKey(dia.id, i)] !== undefined);
+  return (
+    dia.bloques.length > 0 &&
+    dia.bloques.every((b) => b.id !== undefined && progress[blockKey(dia.id, b.id)] !== undefined)
+  );
 }
 
 /** Arma la actividad `workout_day` a partir de los bloques completados. */
@@ -44,7 +72,7 @@ export function buildWorkoutDayActivity(
   today: DateKey,
 ): ActivityDraft {
   const entries = dia.bloques
-    .map((_, i) => progress[blockKey(dia.id, i)])
+    .map((b) => (b.id !== undefined ? progress[blockKey(dia.id, b.id)] : undefined))
     .filter((e): e is BlockProgressEntry => e !== undefined);
 
   const durationSeconds = entries.reduce((sum, e) => sum + Math.max(0, Math.round(e.durationSeconds)), 0);

@@ -82,7 +82,7 @@ export const DayCard: React.FC<DayCardProps> = ({ dia, index, onClick, completio
                 key={bIdx}
                 className="text-[11px] font-medium bg-surface-800 text-zinc-300 border border-zinc-700/60 px-2 py-0.5 rounded-md"
               >
-                {b.tipo}
+                {b.tipo.replace('_', ' ')}
               </span>
             ))}
             <span className="text-[11px] text-zinc-500 font-medium">

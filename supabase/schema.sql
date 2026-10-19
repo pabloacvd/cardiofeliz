@@ -59,6 +59,13 @@ create table if not exists public.cf_vacations (
   constraint cf_vacations_dates_check check (end_on is null or end_on >= start_on)
 );
 
+-- 5. cf_routines: rutina personalizada por usuario (si no existe fila, se usa la default de la app)
+create table if not exists public.cf_routines (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  data jsonb not null check (octet_length(data::text) <= 500000),
+  updated_at timestamptz not null default now()
+);
+
 -- ============================================================================
 -- ÍNDICES
 -- ============================================================================
@@ -94,19 +101,25 @@ create trigger cf_profiles_set_updated_at
   before update on public.cf_profiles
   for each row execute function public.cf_set_updated_at();
 
+drop trigger if exists cf_routines_set_updated_at on public.cf_routines;
+create trigger cf_routines_set_updated_at
+  before update on public.cf_routines
+  for each row execute function public.cf_set_updated_at();
+
 -- ============================================================================
 -- PERMISOS Y ROW LEVEL SECURITY
 -- Solo usuarios autenticados, y cada uno únicamente sobre sus propias filas.
 -- El rol anónimo (anon) no tiene acceso alguno.
 -- ============================================================================
 
-revoke all on public.cf_profiles, public.cf_activities, public.cf_achievements, public.cf_vacations from anon;
-grant select, insert, update, delete on public.cf_profiles, public.cf_activities, public.cf_achievements, public.cf_vacations to authenticated;
+revoke all on public.cf_profiles, public.cf_activities, public.cf_achievements, public.cf_vacations, public.cf_routines from anon;
+grant select, insert, update, delete on public.cf_profiles, public.cf_activities, public.cf_achievements, public.cf_vacations, public.cf_routines to authenticated;
 
 alter table public.cf_profiles enable row level security;
 alter table public.cf_activities enable row level security;
 alter table public.cf_achievements enable row level security;
 alter table public.cf_vacations enable row level security;
+alter table public.cf_routines enable row level security;
 
 -- Políticas (drop + create para mantener el script idempotente; solo afecta políticas cf_*)
 drop policy if exists "cf_profiles_select_own" on public.cf_profiles;
@@ -163,6 +176,20 @@ create policy "cf_vacations_insert_own" on public.cf_vacations
 create policy "cf_vacations_update_own" on public.cf_vacations
   for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 create policy "cf_vacations_delete_own" on public.cf_vacations
+  for delete to authenticated using ((select auth.uid()) = user_id);
+
+drop policy if exists "cf_routines_select_own" on public.cf_routines;
+drop policy if exists "cf_routines_insert_own" on public.cf_routines;
+drop policy if exists "cf_routines_update_own" on public.cf_routines;
+drop policy if exists "cf_routines_delete_own" on public.cf_routines;
+
+create policy "cf_routines_select_own" on public.cf_routines
+  for select to authenticated using ((select auth.uid()) = user_id);
+create policy "cf_routines_insert_own" on public.cf_routines
+  for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "cf_routines_update_own" on public.cf_routines
+  for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "cf_routines_delete_own" on public.cf_routines
   for delete to authenticated using ((select auth.uid()) = user_id);
 
 commit;

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { BloqueTriserie } from '../../types/workout';
+import { BloqueDensity, BloqueTriserie } from '../../types/workout';
 import { ChevronRight, Check, Coffee } from 'lucide-react';
 import { formatSecondsOnly, formatTime } from '../../utils/time';
+import { getTriserieConfig } from '../../utils/timerConfig';
 
 interface TriserieTimerProps {
-  bloque: BloqueTriserie;
+  bloque: BloqueTriserie | BloqueDensity;
   onComplete: (totalSeconds: number) => void;
   playCountdown: () => void;
   playGo: () => void;
@@ -20,8 +21,8 @@ export const TriserieTimer: React.FC<TriserieTimerProps> = ({
   playRest,
   unlockAudio,
 }) => {
-  const totalRounds = 4;
-  const restDuration = 45; // 45 seconds default
+  const { rounds: totalRounds, restSeconds: restDuration } = getTriserieConfig(bloque);
+  const blockLabel = bloque.tipo === 'DENSITY' ? 'DENSITY' : 'TRISERIE METABÓLICA';
 
   const [currentRound, setCurrentRound] = useState(1);
   const [currentExerciseIdx, setCurrentExerciseIdx] = useState(0);
@@ -84,10 +85,17 @@ export const TriserieTimer: React.FC<TriserieTimerProps> = ({
     } else {
       // Completed all exercises in this round
       if (currentRound < totalRounds) {
-        // Trigger Rest
-        setIsResting(true);
-        setRestSecondsLeft(restDuration);
-        playRest();
+        if (restDuration > 0) {
+          // Trigger Rest
+          setIsResting(true);
+          setRestSecondsLeft(restDuration);
+          playRest();
+        } else {
+          // Sin descanso configurado: pasar directo a la siguiente ronda
+          playGo();
+          setCurrentRound((r) => r + 1);
+          setCurrentExerciseIdx(0);
+        }
       } else {
         // Workout complete!
         playGo();
@@ -114,7 +122,7 @@ export const TriserieTimer: React.FC<TriserieTimerProps> = ({
         <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-zinc-400">
           <span className="flex items-center gap-1.5 text-purple-400">
             <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-            TRISERIE METABÓLICA
+            {blockLabel}
           </span>
           <span className="bg-surface-800 text-purple-300 font-bold px-3 py-1 rounded-full border border-purple-500/30">
             Ronda {currentRound} de {totalRounds}
@@ -216,8 +224,10 @@ export const TriserieTimer: React.FC<TriserieTimerProps> = ({
             <span>
               {currentExerciseIdx === bloque.ejercicios.length - 1
                 ? currentRound === totalRounds
-                  ? '¡FINALIZAR TRISERIE!'
-                  : 'DESCANSO ENTRE RONDAS (45s)'
+                  ? `¡FINALIZAR ${bloque.tipo === 'DENSITY' ? 'DENSITY' : 'TRISERIE'}!`
+                  : restDuration > 0
+                  ? `DESCANSO ENTRE RONDAS (${restDuration}s)`
+                  : 'SIGUIENTE RONDA'
                 : 'SIGUIENTE EJERCICIO'}
             </span>
             <ChevronRight className="w-5 h-5" />

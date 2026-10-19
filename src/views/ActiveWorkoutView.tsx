@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Bloque, BloqueEMOM, BloqueAMRAP, BloqueForTime, BloqueTabata, BloqueTriserie, BloqueFinisher } from '../types/workout';
+import { Bloque, BloqueEMOM, BloqueAMRAP, BloqueForTime, BloqueTabata, BloqueTriserie, BloqueDensity, BloqueFinisher, BloqueHiitIntervals } from '../types/workout';
 import { EmomTimer } from '../components/timers/EmomTimer';
 import { AmrapTimer } from '../components/timers/AmrapTimer';
 import { ForTimeTimer } from '../components/timers/ForTimeTimer';
@@ -124,9 +124,10 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           />
         )}
 
-        {bloque.tipo === 'TRISERIE' && (
+        {(bloque.tipo === 'TRISERIE' || bloque.tipo === 'DENSITY') && (
           <TriserieTimer
-            bloque={bloque as BloqueTriserie}
+            key={bloque.id}
+            bloque={bloque as BloqueTriserie | BloqueDensity}
             onComplete={handleComplete}
             playCountdown={playCountdown}
             playGo={playGo}
@@ -135,9 +136,10 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           />
         )}
 
-        {bloque.tipo === 'FINISHER' && (
+        {(bloque.tipo === 'FINISHER' || bloque.tipo === 'HIIT_INTERVALS') && (
           <FinisherTimer
-            bloque={bloque as BloqueFinisher}
+            key={bloque.id}
+            bloque={bloque as BloqueFinisher | BloqueHiitIntervals}
             onComplete={handleComplete}
             playCountdown={playCountdown}
             playGo={playGo}

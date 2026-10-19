@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { Bloque, EjercicioEMOM } from '../types/workout';
 import { ChevronDown, ChevronUp, Play, Clock, CheckCircle2 } from 'lucide-react';
+import {
+  buildFinisherPhases,
+  finisherTotalSeconds,
+  getFinisherRounds,
+  getTabataConfig,
+  getTriserieConfig,
+} from '../utils/timerConfig';
 
 interface BlockCardProps {
   bloque: Bloque;
@@ -28,8 +35,12 @@ export const BlockCard: React.FC<BlockCardProps> = ({
         return 'bg-red-500/15 text-red-400 border-red-500/30';
       case 'TRISERIE':
         return 'bg-purple-500/15 text-purple-400 border-purple-500/30';
+      case 'DENSITY':
+        return 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30';
       case 'FINISHER':
         return 'bg-orange-500/15 text-orange-400 border-orange-500/30';
+      case 'HIIT_INTERVALS':
+        return 'bg-rose-500/15 text-rose-400 border-rose-500/30';
       default:
         return 'bg-zinc-800 text-zinc-300 border-zinc-700';
     }
@@ -39,9 +50,25 @@ export const BlockCard: React.FC<BlockCardProps> = ({
     if (bloque.tipo === 'EMOM') return `${bloque.duracion_minutos} min`;
     if (bloque.tipo === 'AMRAP') return `${bloque.duracion_minutos} min`;
     if (bloque.tipo === 'FOR_TIME') return `Cap ${bloque.cap_minutos} min`;
-    if (bloque.tipo === 'TABATA') return bloque.estructura || '4 min';
-    if (bloque.tipo === 'TRISERIE') return bloque.descanso_entre_rondas ? `Descanso: ${bloque.descanso_entre_rondas}` : '4 Rondas';
-    if (bloque.tipo === 'FINISHER') return '3 Rondas';
+    if (bloque.tipo === 'TABATA') {
+      if (bloque.estructura) return bloque.estructura;
+      const { rounds, workSeconds, restSeconds } = getTabataConfig(bloque);
+      return `${workSeconds}s / ${restSeconds}s x ${rounds}`;
+    }
+    if (bloque.tipo === 'TRISERIE' || bloque.tipo === 'DENSITY') {
+      const { rounds, restSeconds } = getTriserieConfig(bloque);
+      return restSeconds > 0 ? `${rounds} Rondas • Descanso ${restSeconds}s` : `${rounds} Rondas`;
+    }
+    if (bloque.tipo === 'FINISHER') {
+      const rounds = getFinisherRounds(bloque);
+      return `${rounds} ${rounds === 1 ? 'Ronda' : 'Rondas'}`;
+    }
+    if (bloque.tipo === 'HIIT_INTERVALS') {
+      const rounds = getFinisherRounds(bloque);
+      const total = finisherTotalSeconds(buildFinisherPhases(bloque));
+      const roundsLabel = `${rounds} ${rounds === 1 ? 'Ronda' : 'Rondas'}`;
+      return total !== null ? `${Math.round((total / 60) * 10) / 10} min • ${roundsLabel}` : roundsLabel;
+    }
     return '';
   };
 

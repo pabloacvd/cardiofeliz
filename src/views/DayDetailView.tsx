@@ -1,5 +1,6 @@
 import React from 'react';
 import { DiaEntrenamiento, Bloque } from '../types/workout';
+import { blockKey } from '../utils/workoutDay';
 import { WarmupCard } from '../components/WarmupCard';
 import { BlockCard } from '../components/BlockCard';
 import { ArrowLeft, MapPin, Play } from 'lucide-react';
@@ -7,7 +8,7 @@ import { ArrowLeft, MapPin, Play } from 'lucide-react';
 interface DayDetailViewProps {
   dia: DiaEntrenamiento;
   onBack: () => void;
-  onStartBlock: (bloque: Bloque, blockIndex: number) => void;
+  onStartBlock: (bloque: Bloque) => void;
   completedBlocks?: Record<string, boolean>;
 }
 
@@ -57,25 +58,22 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
           <span className="text-[11px] text-zinc-500">Toca para expandir</span>
         </div>
 
-        {dia.bloques.map((bloque, idx) => {
-          const blockKey = `${dia.id}_bloque_${idx}`;
-          return (
-            <BlockCard
-              key={idx}
-              bloque={bloque}
-              index={idx}
-              isCompleted={!!completedBlocks[blockKey]}
-              onStart={() => onStartBlock(bloque, idx)}
-            />
-          );
-        })}
+        {dia.bloques.map((bloque, idx) => (
+          <BlockCard
+            key={bloque.id ?? idx}
+            bloque={bloque}
+            index={idx}
+            isCompleted={bloque.id !== undefined && !!completedBlocks[blockKey(dia.id, bloque.id)]}
+            onStart={() => onStartBlock(bloque)}
+          />
+        ))}
       </div>
 
       {/* Start full routine shortcut */}
       {dia.bloques.length > 0 && (
         <div className="pt-2">
           <button
-            onClick={() => onStartBlock(dia.bloques[0], 0)}
+            onClick={() => onStartBlock(dia.bloques[0])}
             className="w-full py-4 px-5 rounded-2xl bg-gradient-to-r from-cardio-primary to-emerald-400 text-black font-extrabold text-base flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-500/25 active:scale-[0.98] transition-transform"
           >
             <Play className="w-5 h-5 fill-black" />
