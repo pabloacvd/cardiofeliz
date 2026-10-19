@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import type { RutinaData } from '../types/workout';
 import type { RoutineSyncStatus } from '../hooks/useRoutine';
 import { validateRutina } from '../utils/routine';
+import { isDefaultRoutine } from '../utils/routineImport';
+import { getDefaultRoutine } from '../utils/routineSync';
 import {
   cloneRutina,
   hasRoutineChanges,
@@ -40,6 +42,10 @@ import {
 interface RoutineEditorViewProps {
   rutina: RutinaData;
   onSave: (rutina: RutinaData) => Promise<void>;
+  /** Borra la rutina personalizada y vuelve a la original. */
+  onReset: () => Promise<void>;
+  /** true si el usuario tiene una rutina personalizada guardada. */
+  isCustom: boolean;
   onBack: () => void;
   syncStatus: RoutineSyncStatus;
   hasActiveBlockProgressToday?: boolean;
@@ -48,6 +54,8 @@ interface RoutineEditorViewProps {
 export const RoutineEditorView: React.FC<RoutineEditorViewProps> = ({
   rutina,
   onSave,
+  onReset,
+  isCustom,
   onBack,
   syncStatus,
   hasActiveBlockProgressToday = false,
@@ -61,6 +69,8 @@ export const RoutineEditorView: React.FC<RoutineEditorViewProps> = ({
 
   const hasChanges = useMemo(() => hasRoutineChanges(draft, rutina), [draft, rutina]);
   const validation = useMemo(() => validateRutina(draft), [draft]);
+  // Si el borrador ya es la rutina original no hay nada que restaurar.
+  const draftIsDefault = useMemo(() => validation.valid && isDefaultRoutine(draft), [draft, validation.valid]);
 
   const handleBack = () => {
     if (hasChanges) {
@@ -79,7 +89,13 @@ export const RoutineEditorView: React.FC<RoutineEditorViewProps> = ({
     setSaveFeedback(null);
 
     try {
-      await onSave(draft);
+      // Guardar exactamente la rutina original equivale a volver a no tener rutina personalizada:
+      // se borra la fila remota en vez de guardar una copia.
+      if (draftIsDefault && isCustom) {
+        await onReset();
+      } else {
+        await onSave(draft);
+      }
       setSaveFeedback({
         type: 'success',
         message: '¡Rutina guardada correctamente!',
@@ -258,7 +274,13 @@ export const RoutineEditorView: React.FC<RoutineEditorViewProps> = ({
       </div>
 
       {/* Backup and Restore placeholder for Sub-tarea 6 */}
-      <RoutineBackupSection />
+      <RoutineBackupSection
+        draft={draft}
+        usuario={draft.usuario}
+        onImport={(imported) => setDraft(imported)}
+        onRestoreDefault={() => setDraft(getDefaultRoutine(draft.usuario))}
+        canRestore={!draftIsDefault}
+      />
 
       {/* Sticky Bottom Actions */}
       <div className="pt-4 space-y-2">

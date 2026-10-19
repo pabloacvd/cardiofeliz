@@ -67,22 +67,25 @@ export function generateId(): string {
  * No modifica el objeto original.
  */
 export function normalizeRutina(rutina: RutinaData): RutinaData {
+  if (!rutina || typeof rutina !== 'object') return rutina;
+  const dias = Array.isArray(rutina.dias_entrenamiento) ? rutina.dias_entrenamiento : [];
   return {
     ...rutina,
-    dias_entrenamiento: rutina.dias_entrenamiento.map((dia) =>
-      normalizeDia(dia),
-    ),
+    dias_entrenamiento: dias.map((dia) => normalizeDia(dia)),
   };
 }
 
 function normalizeDia(dia: DiaEntrenamiento): DiaEntrenamiento {
+  if (!dia || typeof dia !== 'object') return dia;
+  const bloques = Array.isArray(dia.bloques) ? dia.bloques : [];
   return {
     ...dia,
-    bloques: dia.bloques.map((bloque, idx) => normalizeBloque(bloque, dia.id, idx)),
+    bloques: bloques.map((bloque, idx) => normalizeBloque(bloque, dia.id || `dia_${idx}`, idx)),
   };
 }
 
 function normalizeBloque(bloque: Bloque, diaId: string, idx: number): Bloque {
+  if (!bloque || typeof bloque !== 'object') return bloque;
   if (bloque.id) return bloque;
   return { ...bloque, id: `${diaId}_bloque_${idx}_${generateId()}` } as Bloque;
 }
@@ -303,7 +306,7 @@ function validateOptionalPositiveInt(
   errors: string[],
 ): void {
   if (value === undefined || value === null) return;
-  if (!Number.isInteger(value) || (value as number) < min || (value as number) > max) {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < min || value > max) {
     errors.push(`${label} debe ser un entero entre ${min} y ${max} (recibido: ${value}).`);
   }
 }

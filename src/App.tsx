@@ -31,7 +31,10 @@ type ViewMode = 'home' | 'day_detail' | 'active_workout' | 'analytics' | 'settin
 
 export default function App() {
   const user = useCurrentUser();
-  const { rutina, saveRoutine, syncStatus: routineSyncStatus } = useRoutine(user.userId, user.displayName);
+  const { rutina, isCustom, saveRoutine, resetRoutine, syncStatus: routineSyncStatus } = useRoutine(
+    user.userId,
+    user.displayName,
+  );
   const [currentView, setCurrentView] = useState<ViewMode>('home');
   // El día se guarda por id y se deriva de la rutina vigente: un cambio de rutina no deja una copia vieja.
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
@@ -262,6 +265,8 @@ export default function App() {
           <RoutineEditorView
             rutina={rutina}
             onSave={saveRoutine}
+            onReset={resetRoutine}
+            isCustom={isCustom}
             onBack={handleGoHome}
             syncStatus={routineSyncStatus}
             hasActiveBlockProgressToday={Object.keys(progress).length > 0}

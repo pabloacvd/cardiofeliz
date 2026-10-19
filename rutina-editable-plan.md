@@ -228,7 +228,7 @@ Al reemplazar el JSON también se corrige la clave `"calentami  ento"` (con espa
 
 ## Sub-tarea 6: Importar, exportar y restaurar
 
-- **Status:** `[ ] pending`
+- **Status:** `[x] done`
 - **Intent:** poder cargar una rutina completa desde JSON, hacer backup y volver a la rutina original.
 - **Expected Outcomes:**
   - **Exportar** descarga un `.json` de la rutina actual y también permite copiarlo.
@@ -241,9 +241,27 @@ Al reemplazar el JSON también se corrige la clave `"calentami  ento"` (con espa
   3. Mostrar la confirmación antes de reemplazar el borrador con lo importado o con la default.
 - **Relevant Context:** el módulo de utilidades de rutina de la sub-tarea 1. La regla de seguridad de validar toda entrada del usuario con allowlists y rechazar lo inválido.
 
+### Notas de implementación (contexto para la Sub-tarea 7)
+
+- **Lógica pura:** [`src/utils/routineImport.ts`](src/utils/routineImport.ts) con `parseImportedRoutine(text, usuario)`, `serializeRoutine` e `isDefaultRoutine`. El tamaño (500 KB) se verifica antes de parsear. Un JSON que no parsea da un error genérico, sin eco del contenido. El `usuario` importado se descarta y se fuerza el del login. `validateRutina` y `normalizeRutina` se endurecieron para no reventar con entradas raras (null, arrays, tipos incorrectos).
+- **UI:** [`RoutineBackupSection.tsx`](src/components/routine-editor/RoutineBackupSection.tsx) tiene Exportar (descarga `rutina-cardiofeliz.json`), Copiar JSON, Importar (archivo) y Pegar JSON (área colapsable), más Restaurar. Se exporta el borrador actual, no la rutina guardada. Los archivos mayores a 500 KB se rechazan antes de leerlos. Los errores muestran hasta 10 y un "…y N más". El `<input type="file">` se limpia en cada intento.
+- **Todo entra como borrador:** importar y restaurar piden confirmación y reemplazan el borrador sin guardar. Hay que tocar "Guardar Cambios" para aplicarlo.
+- **Restaurar + guardar:** si el borrador es exactamente la rutina original (`isDefaultRoutine`, que ignora `usuario`) y el usuario tiene rutina personalizada (`isCustom`), "Guardar Cambios" llama a `resetRoutine()` en vez de `saveRoutine()`. Eso borra la fila remota y vuelve al estado "sin rutina personalizada". El botón Restaurar se deshabilita si el borrador ya es la original. [`App.tsx`](src/App.tsx) pasa `onReset` e `isCustom` al editor.
+- **Límite conocido:** `isDefaultRoutine` compara por contenido, incluidos los ids de bloque. Un JSON de la rutina original importado sin ids recibe ids aleatorios y no se detecta como original. Se guarda como rutina personalizada, lo cual es correcto pero no borra la fila.
+- **Tests y build:** 278 tests pasando, 18 de ellos de [`routineImport.test.ts`](src/utils/__tests__/routineImport.test.ts). `npm run build` pasa sin errores ni warnings. Se corrigió una directiva `@ts-expect-error` sobrante en ese test.
+- **Verificación en navegador:** no se hizo; el login es con Supabase.
+- **Para probar a mano en la Sub-tarea 7:**
+  - Exportar, abrir el `.json` y reimportarlo: debe quedar igual al borrador.
+  - Importar un archivo inválido (no JSON, objeto vacío, tipo de bloque desconocido, más de 500 KB): no debe cambiar nada y debe mostrar errores claros.
+  - Importar un JSON con otro `usuario`: debe mantenerse el nombre del login.
+  - Elegir el mismo archivo dos veces seguidas.
+  - Copiar JSON y Pegar JSON con el JSON copiado.
+  - Restaurar, guardar y comprobar en Supabase que la fila de `cf_routines` desaparece. Probarlo también sin conexión.
+  - Cancelar las confirmaciones de importar y restaurar: el borrador no debe cambiar.
+
 ## Sub-tarea 7: Tests y verificación final
 
-- **Status:** `[ ] pending`
+- **Status:** `[x] done`
 - **Intent:** cubrir la lógica nueva y comprobar que nada del uso diario se rompió.
 - **Expected Outcomes:**
   - Tests con Vitest para normalización, validación, conversión de claves de progreso, `isDayFinished` con bloques agregados o borrados, y la lógica de pasos de los timers que se pueda aislar.
@@ -254,6 +272,11 @@ Al reemplazar el JSON también se corrige la clave `"calentami  ento"` (con espa
   2. Ejecutar los scripts de `package.json` (tests, typecheck, build).
   3. Hacer la prueba manual y anotar lo que falle.
 - **Relevant Context:** [`package.json`](package.json), [`src/gamification/__tests__/`](src/gamification/__tests__).
+- **Notas de implementación (resultado):**
+  - `npm test`: 278 tests en 17 archivos. `npm run build` (`tsc && vite build`): sin errores ni warnings. No hay script de lint.
+  - **Probado en navegador** (Playwright, auth y REST de Supabase simulados): los 5 timers (HIIT, Finisher, Density, EMOM, Tabata); editar y guardar (POST a `cf_routines` y Home refleja el cambio); guardado sin conexión (queda local y avisa "Pendiente de sincronizar"); dos guardados seguidos (llegan ambos, en orden); restaurar y guardar (DELETE de la fila); exportar (`rutina-cardiofeliz.json`); importar un archivo válido, uno roto, uno mayor a 500 KB y uno inválido (el borrador queda intacto y se listan los errores por día y bloque).
+  - **Descartado como bug:** el "Tiempo: 00:00" del Finisher en pasos manuales. El código suma el tiempo total en cada tick, y se vio así porque el reloj de la prueba estaba simulado.
+  - **No verificable sin la base real:** sincronización entre dispositivos, RLS, sonidos, wake lock en iPhone y comodidad del editor en celular. Quedan como pruebas manuales para el usuario.
 
 ---
 
