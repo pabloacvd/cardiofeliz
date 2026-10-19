@@ -23,13 +23,20 @@ export async function fetchAllActivities(): Promise<Activity[]> {
 }
 
 /**
- * Sube una actividad. Idempotente: si el id ya existe no se duplica ni se modifica
- * (las actividades no cambian una vez guardadas). Lanza ante cualquier error.
+ * Sube una actividad (alta o edición). Idempotente: el mismo id con el mismo contenido
+ * deja la fila igual, así que reintentar nunca duplica. Lanza ante cualquier error.
  */
 export async function pushActivity(activity: Activity, userId: string): Promise<void> {
   if (!supabase) throw new Error('Supabase no configurado');
   const { error } = await supabase
     .from('cf_activities')
-    .upsert(toDbActivity(activity, userId), { onConflict: 'id', ignoreDuplicates: true });
+    .upsert(toDbActivity(activity, userId), { onConflict: 'id' });
+  if (error) throw error;
+}
+
+/** Borra una actividad. Si ya no existe no es un error. Lanza ante cualquier otro error. */
+export async function deleteActivityRemote(id: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase no configurado');
+  const { error } = await supabase.from('cf_activities').delete().eq('id', id);
   if (error) throw error;
 }

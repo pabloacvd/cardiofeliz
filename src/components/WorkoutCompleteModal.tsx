@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { Trophy, Flame, Clock, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Trophy, Flame, Clock, ArrowRight, CheckCircle2, Zap, Award, ArrowUp } from 'lucide-react';
 import { formatDurationSummary } from '../utils/time';
 import { Bloque } from '../types/workout';
+import type { LogOutcome } from '../gamification';
 
 interface WorkoutCompleteModalProps {
   bloque: Bloque;
@@ -11,6 +12,8 @@ interface WorkoutCompleteModalProps {
   hasNextBlock: boolean;
   onNextBlock: () => void;
   onBackToDay: () => void;
+  /** Presente solo cuando este bloque cerró el día de entrenamiento. */
+  dayResult?: LogOutcome | null;
 }
 
 export const WorkoutCompleteModal: React.FC<WorkoutCompleteModalProps> = ({
@@ -20,20 +23,22 @@ export const WorkoutCompleteModal: React.FC<WorkoutCompleteModalProps> = ({
   hasNextBlock,
   onNextBlock,
   onBackToDay,
+  dayResult,
 }) => {
   useEffect(() => {
-    // Launch celebratory confetti burst
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    // Launch celebratory confetti burst (más grande si se cerró el día)
     try {
       confetti({
-        particleCount: 80,
-        spread: 70,
+        particleCount: dayResult ? 140 : 80,
+        spread: dayResult ? 100 : 70,
         origin: { y: 0.6 },
         colors: ['#22c55e', '#06b6d4', '#f59e0b', '#ec4899'],
       });
     } catch {
       // Ignored if confetti fails
     }
-  }, []);
+  }, [dayResult]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
@@ -76,6 +81,45 @@ export const WorkoutCompleteModal: React.FC<WorkoutCompleteModalProps> = ({
             </span>
           </div>
         </div>
+
+        {/* Resumen del día (solo al terminar todos los bloques) */}
+        {dayResult && (
+          <div
+            role="status"
+            aria-label="Resumen del día"
+            className="relative z-10 rounded-2xl border border-amber-500/30 bg-amber-950/20 p-3 space-y-2 text-left"
+          >
+            <p className="text-[11px] font-extrabold uppercase tracking-widest text-amber-300">¡Día completado!</p>
+            <div className="flex flex-wrap gap-2 text-xs font-bold">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                <Zap className="w-3 h-3" aria-hidden="true" />+{dayResult.xpGained} XP
+              </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-500/15 text-orange-300 border border-orange-500/30">
+                <Flame className="w-3 h-3" aria-hidden="true" />
+                Racha: {dayResult.streakAfter} {dayResult.streakAfter === 1 ? 'día' : 'días'}
+              </span>
+            </div>
+            <p className="text-xs text-zinc-300">
+              Entrenos de la semana: {dayResult.weekWorkouts}/{dayResult.workoutsGoal}
+              {dayResult.weekWorkouts >= dayResult.workoutsGoal ? ' · ¡meta cumplida!' : ''}
+            </p>
+            {dayResult.earnedFreeze && (
+              <p className="text-xs text-cyan-300 font-semibold">Ganaste un congelador para proteger tu racha.</p>
+            )}
+            {dayResult.leveledUp && (
+              <p className="text-xs text-purple-300 font-semibold flex items-center gap-1">
+                <ArrowUp className="w-3 h-3" aria-hidden="true" />
+                ¡Subiste al nivel {dayResult.levelAfter}: {dayResult.tierName}!
+              </p>
+            )}
+            {dayResult.newAchievements.map((a) => (
+              <p key={a.id} className="text-xs text-amber-300 font-semibold flex items-center gap-1">
+                <Award className="w-3 h-3" aria-hidden="true" />
+                Logro desbloqueado: {a.title}
+              </p>
+            ))}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="space-y-2 pt-2 relative z-10">

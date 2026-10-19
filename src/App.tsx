@@ -9,10 +9,17 @@ import { WorkoutCompleteModal } from './components/WorkoutCompleteModal';
 import { useWakeLock } from './hooks/useWakeLock';
 import { useAudioBeeps } from './hooks/useAudioBeeps';
 import { useActivities } from './hooks/useActivities';
+import { useProfileWeight } from './hooks/useProfileWeight';
+import { useAchievements } from './hooks/useAchievements';
+import { useCoachDismissal } from './hooks/useCoachDismissal';
+import { useToasts } from './hooks/useToasts';
+import { useToday } from './hooks/useToday';
+import { ToastStack } from './components/ToastStack';
 import { useBlockProgress } from './hooks/useBlockProgress';
 import { useCurrentUser } from './auth/AuthContext';
-import { todayKey, weekStart } from './gamification';
+import { computeGameSummary, logOutcome, todayKey, weekStart, withActivity, type LogOutcome } from './gamification';
 import { buildWorkoutDayActivity, isDayFinished, weekCompletedDays } from './utils/workoutDay';
+import { buildToasts, withClaimedAchievements } from './utils/celebrations';
 
 
 type ViewMode = 'home' | 'day_detail' | 'active_workout';
@@ -29,15 +36,36 @@ export default function App() {
     bloque: Bloque;
     totalSeconds: number;
     rounds?: number;
+    dayResult?: LogOutcome | null;
   } | null>(null);
 
   const { isLocked } = useWakeLock();
-  const { isMuted, toggleMute, unlockAudio } = useAudioBeeps();
-  const { activities, addActivity, syncStatus } = useActivities(user.userId);
+  const { isMuted, toggleMute, unlockAudio, playVictory } = useAudioBeeps();
+  const { activities, addActivity, updateActivity, removeActivity, fillMissingCalories, syncStatus } =
+    useActivities(user.userId);
+  const profileWeight = useProfileWeight(user.userId);
   const { progress, recordBlock } = useBlockProgress(user.userId);
+  const achievements = useAchievements(user.userId);
+  const { toasts, push: pushToasts, dismiss: dismissToast } = useToasts();
 
   // El estado "completado" se deriva de las actividades de la semana actual y de los bloques de hoy.
-  const today = todayKey();
+  const today = useToday();
+  const coachDismissal = useCoachDismissal(user.userId, today);
+  const game = useMemo(
+    () => computeGameSummary({ activities, vacations: [], today, displayName: user.displayName }),
+    [activities, today, user.displayName],
+  );
+
+  // Tras un registro rápido: se registran los logros (una sola vez) y se avisa con toasts.
+  // Al corregir una corrida no se vuelve a celebrar nivel ni congelador.
+  const handleQuickLogOutcome = (outcome: LogOutcome, isAdjustment: boolean) => {
+    const claimed = achievements.claimNew(outcome.newAchievements.map((a) => a.id));
+    const toCelebrate = withClaimedAchievements(
+      isAdjustment ? { ...outcome, leveledUp: false, earnedFreeze: false } : outcome,
+      claimed,
+    );
+    pushToasts(buildToasts(toCelebrate));
+  };
   const completedDays = useMemo(
     () => weekCompletedDays(activities, today, weekStart(today)),
     [activities, today],
@@ -77,14 +105,22 @@ export default function App() {
       const alreadySaved = activities.some(
         (a) => a.type === 'workout_day' && a.dayId === selectedDay.id && a.occurredOn === todayKey(),
       );
+      let dayResult: LogOutcome | null = null;
       if (!alreadySaved && isDayFinished(selectedDay, updated)) {
-        addActivity(buildWorkoutDayActivity(selectedDay, updated, todayKey()));
+        const before = { activities, vacations: [], today: todayKey(), displayName: user.displayName };
+        const saved = addActivity(buildWorkoutDayActivity(selectedDay, updated, todayKey()), {
+          weightKg: profileWeight.weightKg,
+        });
+        const outcome = logOutcome(before, withActivity(before, saved));
+        const claimed = achievements.claimNew(outcome.newAchievements.map((a) => a.id));
+        dayResult = withClaimedAchievements(outcome, claimed);
       }
 
       setCompletedModal({
         bloque: activeBlock,
         totalSeconds,
         rounds,
+        dayResult,
       });
     }
   };
@@ -147,6 +183,25 @@ export default function App() {
             rutina={rutina}
             onSelectDay={handleSelectDay}
             completedDays={completedDays}
+            game={game}
+            showCoach={!coachDismissal.dismissed}
+            onDismissCoach={coachDismissal.dismiss}
+            quickLog={{
+              today,
+              activities,
+              weightKg: profileWeight.weightKg,
+              weightLoaded: profileWeight.isLoaded,
+              weightPromptDismissed: profileWeight.promptDismissed,
+              onDismissWeightPrompt: profileWeight.dismissPrompt,
+              onSetWeight: profileWeight.setWeightKg,
+              addActivity,
+              updateActivity,
+              removeActivity,
+              fillMissingCalories,
+              onUnlockAudio: unlockAudio,
+              onCelebrate: playVictory,
+              onOutcome: handleQuickLogOutcome,
+            }}
           />
         )}
 
@@ -169,12 +224,15 @@ export default function App() {
         )}
       </main>
 
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
+
       {/* Completion Modal */}
       {completedModal && (
         <WorkoutCompleteModal
           bloque={completedModal.bloque}
           totalSeconds={completedModal.totalSeconds}
           rounds={completedModal.rounds}
+          dayResult={completedModal.dayResult}
           hasNextBlock={hasNextBlock}
           onNextBlock={handleNextBlock}
           onBackToDay={handleBackToDayFromModal}

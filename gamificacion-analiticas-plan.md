@@ -154,7 +154,19 @@ Selector de rango: Semana / Mes / Todo. Estados vacíos motivadores (nada de gr�
   5. Acción de "descanso activo" de 1 toque (caminata/movilidad) para sostener la racha en días libres.
   6. Evitar doble registro accidental (deshacer breve / confirmación liviana).
 - **Contexto relevante**: [`src/views/HomeView.tsx`](src/views/HomeView.tsx), [`src/components/WorkoutCompleteModal.tsx`](src/components/WorkoutCompleteModal.tsx) (patrón de modal + `canvas-confetti`), estilo Tailwind existente (`cardio-primary`, `surface-*`).
-- **Status**: `[ ] pending`
+- **Status**: `[x] done`
+- **Artefactos y contexto para Sub-tareas 5 a 6** (149 tests pasan con `npm test`; `npm run build` pasa sin avisos):
+  - **Home**: `QuickLogCard` (`src/components/QuickLogCard.tsx`) va debajo de los días. Muestra corridas de la semana `x/2`, el botón **"Hoy corrí (30 min)"** (1 toque, guarda al instante), **"Con detalles / otro día"** y **"Descanso activo"** (1 toque, 10 min). `HomeView` la recibe por la prop `quickLog`, armada en `App.tsx`.
+  - **Resultado inmediato** (`role="status"`, se oculta a los 12 s): XP ganado, racha, calorías estimadas, corridas x/2, congelador ganado, subida de nivel y logros nuevos, con **Ajustar** (solo corridas) y **Deshacer**. Usa confeti (respeta `prefers-reduced-motion`) y `playVictory` (respeta el silencio). **La sub-tarea 5 debe reemplazar este resumen básico por los toasts y la celebración definitivos, reutilizando `logOutcome`.**
+  - **Doble registro accidental**: si ya hay una corrida (o un descanso activo) hoy, pide confirmación antes de registrar otra; además está "Deshacer".
+  - **Ajustar / detalles** (`RunSheet`): minutos enteros 1–300, km opcional 0,1–100 (acepta coma), cinta/calle, sensación 1–5 y fecha (hasta 30 días atrás, nunca futura). Validación en `src/utils/activityForm.ts` (`validateRunForm`, `parseWeight`). Corregir una corrida recalcula XP y calorías.
+  - **Peso**: `useProfileWeight(userId)` → `{ weightKg, isLoaded, promptDismissed, dismissPrompt, setWeightKg }`, local-first (`cardiofeliz_<userId>_weight`, con bandera de pendiente) y sincronizado con `cf_profiles.weight_kg` vía `src/lib/profileApi.ts`, que **solo escribe `weight_kg`** (no pisa `display_name`). Se pide una sola vez, al primer registro (`WeightSheet`), con opción "Ahora no, guardar sin calorías" que no vuelve a preguntar. Se edita siempre desde el enlace "Peso: … · editar". No se pregunta hasta consultar al servidor, para no pedir el peso si ya está cargado desde otro dispositivo. Al guardar el peso se completan las calorías de actividades que no las tenían (`fillMissingCalories`). También se pasa a los entrenamientos terminados.
+  - **Capa de datos ampliada** (`useActivities`): ahora expone `updateActivity(id, patch, options)` y `removeActivity(id)`. El borrado queda en una cola (`cardiofeliz_<userId>_activities_deleted`) que se aplica en Supabase al sincronizar, y `mergeRemoteActivities` no deja reaparecer lo borrado. `pushActivity` pasó de ignorar duplicados a upsert completo, para que una edición se suba. Si una actividad se edita mientras sube, sigue pendiente.
+  - **Motor**: `src/gamification/outcome.ts` (`logOutcome(before, after)`, `withActivity`) compara el estado de juego antes y después de un registro.
+  - **Vacaciones**: `QuickLogCard` y `addActivity` todavía reciben `vacations: []` (la tabla `cf_vacations` se conecta en la sub-tarea 5b); hasta entonces el bono de regreso no aplica a las corridas.
+  - **Build**: `vite.config.ts` separa `@supabase` en su propio chunk (`supabase-*.js`); el bundle principal quedó en 285 kB (antes el motor lo llevaba sobre 500 kB y avisaba).
+  - Tests nuevos en `src/gamification/__tests__/quick-log.test.ts` (validación de formulario, parseo de peso, `logOutcome`).
+  - No verificado: la interfaz en un navegador o iPhone (hojas inferiores, teclado numérico, selector de fecha), ni la sincronización de peso, ediciones y borrados contra Supabase real (no hay credenciales).
 
 ### 5. UI de gamificación en Home y cierre de día
 - **Intención**: que abrir la app muestre progreso y motivos para volver.
@@ -166,7 +178,18 @@ Selector de rango: Semana / Mes / Todo. Estados vacíos motivadores (nada de gr�
   4. Persistir en `achievements` los desbloqueos y evitar re-celebrar.
   5. Respetar `prefers-reduced-motion` y reutilizar `soundEngine.playVictoryFanfare` respetando mute.
 - **Contexto relevante**: [`src/views/HomeView.tsx`](src/views/HomeView.tsx), [`src/components/WorkoutCompleteModal.tsx`](src/components/WorkoutCompleteModal.tsx), [`src/utils/audio.ts`](src/utils/audio.ts), [`src/hooks/useAudioBeeps.ts`](src/hooks/useAudioBeeps.ts).
-- **Status**: `[ ] pending`
+- **Status**: `[x] done`
+- **Artefactos y contexto para Sub-tareas 5b y 6** (154 tests pasan con `npm test`; `npm run build` y `tsc` pasan):
+  - **Home** ahora muestra, arriba de todo: `CoachCard` (mensaje del coach, descartable, vuelve al día siguiente; `useCoachDismissal`) y `GameStatus` (racha con chip de congeladores, racha semanal, aviso "De vacaciones", barra de nivel/XP con tramo y XP faltante, y dos anillos de SVG para entrenos x/3 y corridas x/2). Ambos en `src/components/GameStatus.tsx`; `HomeView` recibe `game`, `showCoach` y `onDismissCoach`. `App.tsx` calcula `game = computeGameSummary(...)` con `useMemo`.
+  - `src/hooks/useToday.ts`: fecha local que se actualiza sola al pasar la medianoche o al volver a la app (reemplaza `todayKey()` en `App`, así semana y racha no quedan viejas con la app abierta).
+  - **Logros persistidos**: `useAchievements(userId)` (`src/hooks/useAchievements.ts`, API en `src/lib/achievementsApi.ts`) guarda los desbloqueos en `cf_achievements`, local-first con cola, y `claimNew(ids)` devuelve **solo los logros que no estaban registrados**, por lo que cada logro se celebra una única vez, también entre dispositivos. Al sincronizar gana la fecha de desbloqueo más antigua. El estado de cada logro (bloqueado/progreso) sigue derivándose del historial; la sub-tarea 6 puede usar `unlockedAt` para mostrar la fecha.
+  - **Avisos**: `ToastStack` (`src/components/ToastStack.tsx`, `role="status"`, se cierran solos a los 6 s o a mano) para logro, subida de nivel y congelador ganado; la lógica está en `src/utils/celebrations.ts` (`buildToasts`, `withClaimedAchievements`) y la cola en `useToasts`. Al **corregir** una corrida no se vuelve a celebrar nivel ni congelador.
+  - **Cierre de día**: `WorkoutCompleteModal` recibe `dayResult` (un `LogOutcome`) solo cuando el bloque terminado cierra el día; muestra XP, racha, entrenos x/3, congelador, nivel y logros nuevos, con más confeti. `App` calcula el resultado con `logOutcome` antes y después de guardar. Respeta `prefers-reduced-motion`.
+  - `QuickLogCard` ya no lista nivel/logros/congelador (van por toasts) y llama a `onOutcome(outcome, isAdjustment)`. Se conserva el resumen de XP, racha, calorías y corridas x/2.
+  - **Sonido**: se reutiliza `playVictory` (respeta el silencio) en el registro rápido; los bloques ya lo reproducían.
+  - **Pendiente para 5b**: `vacations` sigue siendo `[]` en `App` (para `computeGameSummary`, `addActivity` y `logOutcome`); al conectar `cf_vacations` hay que pasarlas ahí. `game.challenge`, `game.missions` y `game.mascot` ya vienen calculados pero no se muestran. `CoachCard` usa un ícono por estado de ánimo: la mascota SVG de 5b lo reemplaza.
+  - Tests nuevos en `src/gamification/__tests__/celebrations.test.ts`.
+  - No verificado: aspecto y comportamiento en navegador o iPhone (anillos, toasts bajo el header sticky, confeti), ni la sincronización de `cf_achievements` contra Supabase real (no hay credenciales).
 
 ### 5b. Desafíos semanales, misiones diarias, mascota y modo vacaciones (UI + datos)
 - **Intención**: sumar los loops de retorno diario/semanal y la personalidad del coach.

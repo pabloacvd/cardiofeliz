@@ -64,6 +64,8 @@ export { levelFromXp, mascotStage, xpForLevel } from './levels';
 export { newlyUnlocked } from './achievements';
 export { challengeHistory } from './challenges';
 export { todayKey, toDateKey, weekStart, weekEnd, isoWeek, addDays, diffDays, eachDay } from './dates';
+export { logOutcome, withActivity } from './outcome';
+export type { LogOutcome } from './outcome';
 export { cleanActivities, cleanVacations } from './activities';
 export type { GameContext } from './activities';
 export { GAME_CONFIG } from './config';

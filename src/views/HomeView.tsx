@@ -1,6 +1,9 @@
 import React from 'react';
 import { RutinaData, DiaEntrenamiento } from '../types/workout';
 import { DayCard } from '../components/DayCard';
+import { QuickLogCard } from '../components/QuickLogCard';
+import { CoachCard, GameStatus } from '../components/GameStatus';
+import type { GameSummary } from '../gamification';
 import { Target, HeartHandshake } from 'lucide-react';
 
 interface HomeViewProps {
@@ -8,15 +11,27 @@ interface HomeViewProps {
   onSelectDay: (dia: DiaEntrenamiento) => void;
   completedDays?: Record<string, 'today' | 'week'>;
   onDirectStart?: (dia: DiaEntrenamiento) => void;
+  quickLog: React.ComponentProps<typeof QuickLogCard>;
+  game: GameSummary;
+  showCoach: boolean;
+  onDismissCoach: () => void;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
   rutina,
   onSelectDay,
   completedDays = {},
+  quickLog,
+  game,
+  showCoach,
+  onDismissCoach,
 }) => {
   return (
     <div className="space-y-5 animate-fadeIn">
+      {showCoach && <CoachCard coach={game.coach} onDismiss={onDismissCoach} />}
+
+      <GameStatus game={game} />
+
       {/* Objective Hero Card */}
       <div className="rounded-2xl border border-zinc-800 bg-gradient-to-b from-surface-900 via-surface-900 to-black p-4 shadow-lg">
         <div className="flex items-center gap-2 mb-2">
@@ -72,6 +87,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Registro rápido de corrida / descanso activo */}
+      <QuickLogCard {...quickLog} />
 
       {/* Quick Tips Footer */}
       <div className="rounded-xl border border-zinc-800/80 bg-black p-3 flex items-center gap-3">

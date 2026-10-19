@@ -11,18 +11,21 @@ export function sortActivities(activities: readonly Activity[]): Activity[] {
  * Combina el historial remoto con el local.
  * - El servidor es la fuente de verdad para lo ya sincronizado.
  * - Las actividades locales todavía pendientes de subir se conservan (y ganan ante el mismo id).
+ * - Las borradas localmente (con borrado pendiente) no reaparecen aunque el servidor aún las tenga.
  * Resultado ordenado de la más reciente a la más antigua.
  */
 export function mergeRemoteActivities(
   local: readonly Activity[],
   remote: readonly Activity[],
   pendingIds: ReadonlySet<string>,
+  deletedIds: ReadonlySet<string> = new Set(),
 ): Activity[] {
   const byId = new Map<string, Activity>();
   for (const a of remote) byId.set(a.id, a);
   for (const a of local) {
     if (pendingIds.has(a.id)) byId.set(a.id, a);
   }
+  for (const id of deletedIds) byId.delete(id);
   return sortActivities([...byId.values()]);
 }
 
