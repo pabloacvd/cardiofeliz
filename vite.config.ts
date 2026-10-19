@@ -5,10 +5,14 @@ export default defineConfig({
   plugins: [react()],
   base: './',
   build: {
+    chunkSizeWarningLimit: 650,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules/@supabase')) return 'supabase';
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-') || id.includes('node_modules/victory-vendor')) {
+            return 'recharts';
+          }
         },
       },
     },

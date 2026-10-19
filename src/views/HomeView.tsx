@@ -3,6 +3,8 @@ import { RutinaData, DiaEntrenamiento } from '../types/workout';
 import { DayCard } from '../components/DayCard';
 import { QuickLogCard } from '../components/QuickLogCard';
 import { CoachCard, GameStatus } from '../components/GameStatus';
+import { DailyMissionsCard } from '../components/DailyMissionsCard';
+import { WeeklyChallengeCard } from '../components/WeeklyChallengeCard';
 import type { GameSummary } from '../gamification';
 import { Target, HeartHandshake } from 'lucide-react';
 
@@ -15,6 +17,7 @@ interface HomeViewProps {
   game: GameSummary;
   showCoach: boolean;
   onDismissCoach: () => void;
+  onOpenVacations?: () => void;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
@@ -25,12 +28,24 @@ export const HomeView: React.FC<HomeViewProps> = ({
   game,
   showCoach,
   onDismissCoach,
+  onOpenVacations,
 }) => {
   return (
     <div className="space-y-5 animate-fadeIn">
-      {showCoach && <CoachCard coach={game.coach} onDismiss={onDismissCoach} />}
+      {showCoach && (
+        <CoachCard
+          coach={game.coach}
+          mascotStage={game.mascot.stage}
+          mascotName={game.mascot.name}
+          onDismiss={onDismissCoach}
+        />
+      )}
 
-      <GameStatus game={game} />
+      <GameStatus game={game} onOpenVacations={onOpenVacations} />
+
+      {/* Misiones diarias & Desafío semanal */}
+      <DailyMissionsCard missions={game.missions} />
+      <WeeklyChallengeCard challenge={game.challenge} />
 
       {/* Objective Hero Card */}
       <div className="rounded-2xl border border-zinc-800 bg-gradient-to-b from-surface-900 via-surface-900 to-black p-4 shadow-lg">

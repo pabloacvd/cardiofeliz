@@ -1,5 +1,5 @@
 import React from 'react';
-import { Volume2, VolumeX, Shield, Zap, LogOut, CloudCheck, CloudUpload, CloudOff } from 'lucide-react';
+import { Volume2, VolumeX, Shield, Zap, LogOut, CloudCheck, CloudUpload, CloudOff, BarChart3 } from 'lucide-react';
 import type { SyncStatus } from '../hooks/useActivities';
 
 const SYNC_INDICATOR: Record<SyncStatus, { label: string; className: string; Icon: typeof CloudCheck }> = {
@@ -15,6 +15,8 @@ interface HeaderProps {
   onToggleMute: () => void;
   isWakeLocked?: boolean;
   onHomeClick?: () => void;
+  onAnalyticsClick?: () => void;
+  isAnalyticsActive?: boolean;
   userName?: string;
   onSignOut?: () => void;
 }
@@ -25,6 +27,8 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleMute,
   isWakeLocked = false,
   onHomeClick,
+  onAnalyticsClick,
+  isAnalyticsActive = false,
   userName,
   onSignOut,
 }) => {
@@ -75,6 +79,21 @@ export const Header: React.FC<HeaderProps> = ({
               <Shield className="w-3 h-3" />
               <span>PANTALLA ACTIVA</span>
             </div>
+          )}
+
+          {/* Analytics Icon */}
+          {onAnalyticsClick && (
+            <button
+              onClick={onAnalyticsClick}
+              aria-label="Ver analíticas y progreso"
+              className={`p-2 rounded-xl border transition-colors ${
+                isAnalyticsActive
+                  ? 'bg-cardio-primary/20 border-cardio-primary text-cardio-primary'
+                  : 'bg-surface-800 border-zinc-700 text-zinc-300 hover:text-cardio-primary active:bg-surface-700'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+            </button>
           )}
 
           {/* Sound Toggle */}

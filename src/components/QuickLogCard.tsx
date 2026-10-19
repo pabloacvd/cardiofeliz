@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Footprints, Flame, Zap, Undo2, SlidersHorizontal, Scale, Trophy, Leaf } from 'lucide-react';
-import type { Activity } from '../types/gamification';
+import type { Activity, VacationPeriod } from '../types/gamification';
 import { GAME_CONFIG, logOutcome, withActivity, type GameContext, type LogOutcome } from '../gamification';
 import { weekProgress } from '../gamification/weeks';
 import type { DateKey } from '../gamification/dates';
@@ -16,6 +16,7 @@ const RESULT_VISIBLE_MS = 12_000;
 interface QuickLogCardProps {
   today: DateKey;
   activities: readonly Activity[];
+  vacations?: readonly VacationPeriod[];
   weightKg: number | null;
   weightLoaded: boolean;
   weightPromptDismissed: boolean;
@@ -53,6 +54,7 @@ function celebrate(): void {
 export const QuickLogCard: React.FC<QuickLogCardProps> = ({
   today,
   activities,
+  vacations = [],
   weightKg,
   weightLoaded,
   weightPromptDismissed,
@@ -72,7 +74,7 @@ export const QuickLogCard: React.FC<QuickLogCardProps> = ({
   const [confirmDuplicate, setConfirmDuplicate] = useState<PendingAction>(null);
   const resultRef = useRef<HTMLDivElement>(null);
 
-  const week = weekProgress({ activities, vacations: [], today }, today);
+  const week = weekProgress({ activities, vacations, today }, today);
   const runsToday = activities.filter((a) => a.type === 'run' && a.occurredOn === today).length;
   const restToday = activities.some((a) => a.type === 'active_rest' && a.occurredOn === today);
 
@@ -90,17 +92,17 @@ export const QuickLogCard: React.FC<QuickLogCardProps> = ({
   const gameContext = useCallback(
     (weight: number | null, list: readonly Activity[]): GameContext => ({
       activities: list,
-      vacations: [],
+      vacations,
       today,
       weightKg: weight,
     }),
-    [today],
+    [today, vacations],
   );
 
   const save = useCallback(
     (draft: ActivityDraft, kind: LoggedResult['kind'], weight: number | null) => {
       const before = gameContext(weight, activities);
-      const saved = addActivity(draft, { weightKg: weight });
+      const saved = addActivity(draft, { weightKg: weight, vacations });
       const outcome = logOutcome(before, withActivity(before, saved));
       setResult({ activityId: saved.id, kind, outcome, activity: saved });
       celebrate();
@@ -193,7 +195,7 @@ export const QuickLogCard: React.FC<QuickLogCardProps> = ({
         feeling: fields.feeling,
         occurredOn: fields.occurredOn,
       },
-      { weightKg },
+      { weightKg, vacations },
     );
     setSheet(null);
     if (updated) {

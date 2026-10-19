@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState, Suspense } from 'react';
 import rutinaData from './data/rutina.json';
 import { RutinaData, DiaEntrenamiento, Bloque } from './types/workout';
 import { Header } from './components/Header';
@@ -11,18 +11,22 @@ import { useAudioBeeps } from './hooks/useAudioBeeps';
 import { useActivities } from './hooks/useActivities';
 import { useProfileWeight } from './hooks/useProfileWeight';
 import { useAchievements } from './hooks/useAchievements';
+import { useVacations } from './hooks/useVacations';
 import { useCoachDismissal } from './hooks/useCoachDismissal';
 import { useToasts } from './hooks/useToasts';
 import { useToday } from './hooks/useToday';
 import { ToastStack } from './components/ToastStack';
+import { VacationSheet } from './components/VacationSheet';
+import { WeightSheet } from './components/WeightSheet';
 import { useBlockProgress } from './hooks/useBlockProgress';
 import { useCurrentUser } from './auth/AuthContext';
 import { computeGameSummary, logOutcome, todayKey, weekStart, withActivity, type LogOutcome } from './gamification';
 import { buildWorkoutDayActivity, isDayFinished, weekCompletedDays } from './utils/workoutDay';
 import { buildToasts, withClaimedAchievements } from './utils/celebrations';
 
+const AnalyticsView = React.lazy(() => import('./views/AnalyticsView'));
 
-type ViewMode = 'home' | 'day_detail' | 'active_workout';
+type ViewMode = 'home' | 'day_detail' | 'active_workout' | 'analytics';
 
 export default function App() {
   const user = useCurrentUser();
@@ -44,6 +48,9 @@ export default function App() {
   const { activities, addActivity, updateActivity, removeActivity, fillMissingCalories, syncStatus } =
     useActivities(user.userId);
   const profileWeight = useProfileWeight(user.userId);
+  const { vacations, startVacation, endActiveVacation, deleteVacation } = useVacations(user.userId);
+  const [isVacationSheetOpen, setIsVacationSheetOpen] = useState(false);
+  const [isWeightSheetOpen, setIsWeightSheetOpen] = useState(false);
   const { progress, recordBlock } = useBlockProgress(user.userId);
   const achievements = useAchievements(user.userId);
   const { toasts, push: pushToasts, dismiss: dismissToast } = useToasts();
@@ -52,8 +59,8 @@ export default function App() {
   const today = useToday();
   const coachDismissal = useCoachDismissal(user.userId, today);
   const game = useMemo(
-    () => computeGameSummary({ activities, vacations: [], today, displayName: user.displayName }),
-    [activities, today, user.displayName],
+    () => computeGameSummary({ activities, vacations, today, displayName: user.displayName }),
+    [activities, vacations, today, user.displayName],
   );
 
   // Tras un registro rápido: se registran los logros (una sola vez) y se avisa con toasts.
@@ -107,9 +114,10 @@ export default function App() {
       );
       let dayResult: LogOutcome | null = null;
       if (!alreadySaved && isDayFinished(selectedDay, updated)) {
-        const before = { activities, vacations: [], today: todayKey(), displayName: user.displayName };
+        const before = { activities, vacations, today: todayKey(), displayName: user.displayName };
         const saved = addActivity(buildWorkoutDayActivity(selectedDay, updated, todayKey()), {
           weightKg: profileWeight.weightKg,
+          vacations,
         });
         const outcome = logOutcome(before, withActivity(before, saved));
         const claimed = achievements.claimNew(outcome.newAchievements.map((a) => a.id));
@@ -161,15 +169,32 @@ export default function App() {
     activeBlockIndex !== null &&
     activeBlockIndex < selectedDay.bloques.length - 1);
 
+  const handleOpenAnalytics = () => {
+    setSelectedDay(null);
+    setActiveBlock(null);
+    setActiveBlockIndex(null);
+    setCurrentView('analytics');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSaveWeightFromAnalytics = (kg: number) => {
+    if (profileWeight.setWeightKg(kg)) {
+      fillMissingCalories(kg);
+      setIsWeightSheetOpen(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-white flex flex-col font-sans selection:bg-cardio-primary selection:text-black">
-      {/* Header is shown on Home and DayDetail views */}
+      {/* Header is shown on Home, DayDetail, and Analytics views */}
       {currentView !== 'active_workout' && (
         <Header
           isMuted={isMuted}
           onToggleMute={toggleMute}
           isWakeLocked={isLocked}
           onHomeClick={handleGoHome}
+          onAnalyticsClick={handleOpenAnalytics}
+          isAnalyticsActive={currentView === 'analytics'}
           userName={user.displayName}
           syncStatus={syncStatus}
           onSignOut={user.signOut}
@@ -186,9 +211,11 @@ export default function App() {
             game={game}
             showCoach={!coachDismissal.dismissed}
             onDismissCoach={coachDismissal.dismiss}
+            onOpenVacations={() => setIsVacationSheetOpen(true)}
             quickLog={{
               today,
               activities,
+              vacations,
               weightKg: profileWeight.weightKg,
               weightLoaded: profileWeight.isLoaded,
               weightPromptDismissed: profileWeight.promptDismissed,
@@ -222,9 +249,53 @@ export default function App() {
             onBlockCompleted={handleBlockCompleted}
           />
         )}
+
+        {currentView === 'analytics' && (
+          <Suspense
+            fallback={
+              <div className="py-20 text-center space-y-3">
+                <div className="w-8 h-8 border-2 border-cardio-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="text-xs text-zinc-400 font-semibold">Cargando analíticas...</p>
+              </div>
+            }
+          >
+            <AnalyticsView
+              activities={activities}
+              vacations={vacations}
+              today={today}
+              game={game}
+              userName={user.displayName}
+              weightKg={profileWeight.weightKg}
+              unlockedAtMap={achievements.unlockedAt}
+              onBack={handleGoHome}
+              onEditWeight={() => setIsWeightSheetOpen(true)}
+              onManageVacations={() => setIsVacationSheetOpen(true)}
+              onSignOut={user.signOut}
+            />
+          </Suspense>
+        )}
       </main>
 
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
+
+      {isVacationSheetOpen && (
+        <VacationSheet
+          status={game.vacation}
+          today={today}
+          onClose={() => setIsVacationSheetOpen(false)}
+          onStartVacation={startVacation}
+          onEndVacation={endActiveVacation}
+          onDeleteVacation={deleteVacation}
+        />
+      )}
+
+      {isWeightSheetOpen && (
+        <WeightSheet
+          initialKg={profileWeight.weightKg}
+          onSave={handleSaveWeightFromAnalytics}
+          onClose={() => setIsWeightSheetOpen(false)}
+        />
+      )}
 
       {/* Completion Modal */}
       {completedModal && (
@@ -233,6 +304,7 @@ export default function App() {
           totalSeconds={completedModal.totalSeconds}
           rounds={completedModal.rounds}
           dayResult={completedModal.dayResult}
+          mascotStage={game.mascot.stage}
           hasNextBlock={hasNextBlock}
           onNextBlock={handleNextBlock}
           onBackToDay={handleBackToDayFromModal}

@@ -2,26 +2,12 @@ import React from 'react';
 import {
   Flame,
   Snowflake,
-  Smile,
-  Trophy,
-  TriangleAlert,
-  HeartPulse,
-  Moon,
-  Sparkles,
+  Palmtree,
   X,
-  type LucideIcon,
 } from 'lucide-react';
 import type { GameSummary } from '../gamification';
 import type { CoachMood } from '../gamification/coach';
-
-const MOOD_ICON: Record<CoachMood, LucideIcon> = {
-  happy: Smile,
-  proud: Trophy,
-  worried: TriangleAlert,
-  recover: HeartPulse,
-  rest: Moon,
-  welcome: Sparkles,
-};
+import { Mascot } from './Mascot';
 
 const MOOD_STYLE: Record<CoachMood, string> = {
   happy: 'border-cardio-primary/30 text-emerald-300',
@@ -36,22 +22,25 @@ const plural = (n: number, one: string, many: string): string => `${n} ${n === 1
 
 interface CoachCardProps {
   coach: GameSummary['coach'];
+  mascotStage?: number;
+  mascotName?: string;
   onDismiss: () => void;
 }
 
-/** Mensaje del coach al abrir la app. Se puede descartar y no vuelve hasta el día siguiente. */
-export const CoachCard: React.FC<CoachCardProps> = ({ coach, onDismiss }) => {
-  const Icon = MOOD_ICON[coach.mood];
+/** Mensaje del coach al abrir la app con la mascota animada. Se puede descartar y no vuelve hasta el día siguiente. */
+export const CoachCard: React.FC<CoachCardProps> = ({ coach, mascotStage = 1, mascotName, onDismiss }) => {
   return (
     <div
       role="region"
       aria-label="Mensaje del coach"
-      className={`rounded-2xl border bg-surface-900 p-3.5 flex items-start gap-3 ${MOOD_STYLE[coach.mood]}`}
+      className={`rounded-2xl border bg-surface-900 p-3.5 flex items-start gap-3 shadow-lg ${MOOD_STYLE[coach.mood]}`}
     >
-      <div className="p-2 rounded-xl bg-black/50 shrink-0">
-        <Icon className="w-4 h-4" aria-hidden="true" />
+      <div className="shrink-0 p-1 rounded-xl bg-black/40 border border-zinc-800/80">
+        <Mascot stage={mascotStage} mood={coach.mood} size={42} showName={Boolean(mascotName)} />
       </div>
-      <p className="flex-1 text-sm leading-snug text-zinc-100">{coach.text}</p>
+      <div className="flex-1 min-w-0 pt-0.5">
+        <p className="text-sm leading-snug text-zinc-100">{coach.text}</p>
+      </div>
       <button
         type="button"
         onClick={onDismiss}
@@ -100,10 +89,11 @@ const RingGauge: React.FC<Ring> = ({ label, value, goal, color }) => {
 
 interface GameStatusProps {
   game: GameSummary;
+  onOpenVacations?: () => void;
 }
 
 /** Racha (con congeladores), nivel/XP y anillos de la semana. */
-export const GameStatus: React.FC<GameStatusProps> = ({ game }) => {
+export const GameStatus: React.FC<GameStatusProps> = ({ game, onOpenVacations }) => {
   const { streak, level, week, weekly, vacation } = game;
   const xpLeft = Math.max(0, level.xpForNextLevel - level.xpIntoLevel);
 
@@ -132,11 +122,27 @@ export const GameStatus: React.FC<GameStatusProps> = ({ game }) => {
           </span>
         )}
 
-        {vacation.active && (
-          <span className="px-3 py-1.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-bold">
+        {vacation.active ? (
+          <button
+            type="button"
+            onClick={onOpenVacations}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 text-xs font-bold hover:bg-purple-500/30 active:scale-95 transition-all"
+            aria-label="De vacaciones - click para gestionar"
+          >
+            <Palmtree className="w-3.5 h-3.5 text-purple-400" />
             De vacaciones
-          </span>
-        )}
+          </button>
+        ) : onOpenVacations ? (
+          <button
+            type="button"
+            onClick={onOpenVacations}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-zinc-800/80 border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 text-[11px] font-semibold transition-colors"
+            title="Activar o gestionar vacaciones"
+          >
+            <Palmtree className="w-3 h-3 text-purple-400" />
+            Vacaciones
+          </button>
+        ) : null}
 
         {streak.atRisk && (
           <span className="text-[11px] font-semibold text-orange-300">

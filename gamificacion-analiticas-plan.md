@@ -202,7 +202,15 @@ Selector de rango: Semana / Mes / Todo. Estados vacíos motivadores (nada de gr�
   5. Modo "¡Hay que recuperar!" al volver: mensajes del coach, misión de vuelta suave y bonus de regreso (a validar con el usuario).
   6. Evitar activar/desactivar vacaciones por error (confirmación liviana); permitir corregir fechas.
 - **Contexto relevante**: [`src/views/HomeView.tsx`](src/views/HomeView.tsx), motor en `src/gamification/`, capa de datos del sub-tarea 3.
-- **Status**: `[ ] pending`
+- **Status**: `[x] done`
+- **Artefactos y contexto**:
+  - `src/lib/vacationsApi.ts`: operaciones sobre `cf_vacations` (`fetchVacations`, `pushVacation`, `deleteVacationRemote`).
+  - `src/hooks/useVacations.ts`: hook local-first con cola de sincronización para vacaciones (`startVacation`, `endActiveVacation`, `updateVacation`, `deleteVacation`).
+  - `src/components/Mascot.tsx`: Mascota SVG con 5 etapas evolutivas (Brasita, Llamita, Fueguito, Fogata, Fénix) y estados de ánimo reactivos (`happy`, `proud`, `worried`, `recover`, `rest`, `welcome`).
+  - `src/components/DailyMissionsCard.tsx`: Misiones diarias del día con checkboxes y XP.
+  - `src/components/WeeklyChallengeCard.tsx`: Desafío semanal con progreso, barra y estado completado/pausado.
+  - `src/components/VacationSheet.tsx`: BottomSheet para activar o terminar vacaciones y consultar días transcurridos.
+  - Integración completa en `App.tsx`, `HomeView.tsx`, `CoachCard`, `GameStatus`, `WorkoutCompleteModal` y `QuickLogCard`.
 
 ### 6. Vista de Analíticas + ícono en el header
 - **Intención**: dar a Juli una sección de progreso que motive día tras día y semana tras semana.
@@ -217,7 +225,17 @@ Selector de rango: Semana / Mes / Todo. Estados vacíos motivadores (nada de gr�
   7. Sección de récords, logros, desafíos (historial), vacaciones marcadas en calendario/semanas y cuenta (peso, modo vacaciones).
   8. Verificar rendimiento y que Recharts no infle el bundle inicial (carga diferida de la vista).
 - **Contexto relevante**: [`src/components/Header.tsx`](src/components/Header.tsx), [`src/App.tsx`](src/App.tsx), [`tailwind.config.js`](tailwind.config.js).
-- **Status**: `[ ] pending`
+- **Status**: `[x] done`
+- **Artefactos y contexto**:
+  - `src/gamification/analytics.ts`: agregaciones y métricas puras (`computeAnalyticsSummary`, `computeDailyMinutes`, `computeWeeklyHistory`, `computePaceHistory`, `computeTypeDistribution`, `computeFeelingTrend`, `computePersonalRecords`, `computeMonthlyHeatmap`).
+  - `src/components/analytics/HeatmapCalendar.tsx`: calendario mensual de constancia estilo GitHub con 5 niveles de intensidad y soporte de vacaciones.
+  - `src/components/analytics/ActivityCharts.tsx`: gráficos Recharts adaptados a OLED dark (Minutos apilados, Km semanales, Calorías estimadas, Ritmo min/km, Distribución tipo dona, Sensación).
+  - `src/components/analytics/PersonalRecordsCard.tsx`: tarjetas de récords personales.
+  - `src/components/analytics/AchievementsGallery.tsx`: galería filtrable de logros con barras de progreso y fechas.
+  - `src/components/analytics/ChallengesHistory.tsx`: historial semanal de desafíos completados/pausados.
+  - `src/components/analytics/AccountSection.tsx`: gestión de usuario, edición de peso, vacaciones y cierre de sesión.
+  - `src/views/AnalyticsView.tsx`: vista completa de analíticas con selector de rango (Semana / Mes / Todo) y carga diferida con `React.lazy`.
+  - `Header.tsx`: botón `BarChart3` ubicado a la izquierda de silenciar.
 
 ### 7. Login compartido con PlanDental y sesión (hacer ANTES de la sub-tarea 3)
 - **Intención**: reutilizar la gestión de usuarios de PlanDental y dejar la app lista para multiusuario.
@@ -251,7 +269,12 @@ Selector de rango: Semana / Mes / Todo. Estados vacíos motivadores (nada de gr�
   2. README: variables de entorno, SQL, pasos de Supabase, nota sobre pausa del free tier.
   3. Ejecutar `npm run build` (tsc + vite) y tests del motor; revisar bundle.
   4. Prueba manual: terminar día, "Hoy corrí" rápido y ajustado, modo offline → online, cambio de semana, abrir en segundo dispositivo iniciando sesión con el mismo usuario.
-- **Status**: `[ ] pending`
+- **Status**: `[x] done`
+- **Artefactos y contexto**:
+  - `public/sw.js`: cache actualizada a `cardiofeliz-v3` ignorando orígenes externos (Supabase nunca se cachea).
+  - `README.md`: documentación completa del proyecto, arquitectura local-first, gamificación, analíticas y configuración de Supabase.
+  - 160 tests unitarios y de integración pasando con `npm test`.
+  - Build de Vite 100% limpio y optimizado con chunking para Supabase y Recharts.
 
 ---
 

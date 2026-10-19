@@ -4,6 +4,7 @@ import { Trophy, Flame, Clock, ArrowRight, CheckCircle2, Zap, Award, ArrowUp } f
 import { formatDurationSummary } from '../utils/time';
 import { Bloque } from '../types/workout';
 import type { LogOutcome } from '../gamification';
+import { Mascot } from './Mascot';
 
 interface WorkoutCompleteModalProps {
   bloque: Bloque;
@@ -14,6 +15,7 @@ interface WorkoutCompleteModalProps {
   onBackToDay: () => void;
   /** Presente solo cuando este bloque cerró el día de entrenamiento. */
   dayResult?: LogOutcome | null;
+  mascotStage?: number;
 }
 
 export const WorkoutCompleteModal: React.FC<WorkoutCompleteModalProps> = ({
@@ -24,6 +26,7 @@ export const WorkoutCompleteModal: React.FC<WorkoutCompleteModalProps> = ({
   onNextBlock,
   onBackToDay,
   dayResult,
+  mascotStage = 1,
 }) => {
   useEffect(() => {
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
@@ -47,12 +50,18 @@ export const WorkoutCompleteModal: React.FC<WorkoutCompleteModalProps> = ({
         <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-48 h-48 bg-cardio-primary/20 blur-3xl pointer-events-none" />
 
         <div className="relative z-10">
-          <div className="w-16 h-16 rounded-2xl bg-cardio-primary/20 border border-cardio-primary/40 text-cardio-primary mx-auto flex items-center justify-center mb-3 shadow-lg shadow-emerald-500/20">
-            <Trophy className="w-8 h-8" />
-          </div>
+          {dayResult ? (
+            <div className="mx-auto mb-2 flex justify-center">
+              <Mascot stage={mascotStage} mood="proud" size={56} />
+            </div>
+          ) : (
+            <div className="w-16 h-16 rounded-2xl bg-cardio-primary/20 border border-cardio-primary/40 text-cardio-primary mx-auto flex items-center justify-center mb-3 shadow-lg shadow-emerald-500/20">
+              <Trophy className="w-8 h-8" />
+            </div>
+          )}
 
           <span className="text-[11px] font-extrabold uppercase tracking-widest text-cardio-primary block mb-1">
-            ¡Bloque Finalizado con Éxito!
+            {dayResult ? '¡Día de Entrenamiento Completado!' : '¡Bloque Finalizado con Éxito!'}
           </span>
           <h2 className="text-xl font-black text-white leading-tight">
             {bloque.nombre}

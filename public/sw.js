@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cardiofeliz-v2';
+const CACHE_NAME = 'cardiofeliz-v3';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -63,7 +63,7 @@ self.addEventListener('fetch', (event) => {
       }).catch(() => {
         // Fallback for navigation requests
         if (event.request.mode === 'navigate') {
-          return caches.match('/index.html');
+          return caches.match('./index.html').then((r) => r || caches.match('./'));
         }
       });
     })
