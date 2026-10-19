@@ -6,7 +6,7 @@ import { Target, HeartHandshake } from 'lucide-react';
 interface HomeViewProps {
   rutina: RutinaData;
   onSelectDay: (dia: DiaEntrenamiento) => void;
-  completedDays?: Record<string, boolean>;
+  completedDays?: Record<string, 'today' | 'week'>;
   onDirectStart?: (dia: DiaEntrenamiento) => void;
 }
 
@@ -67,7 +67,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               dia={dia}
               index={idx}
               onClick={() => onSelectDay(dia)}
-              isCompleted={completedDays[dia.id]}
+              completion={completedDays[dia.id]}
             />
           ))}
         </div>

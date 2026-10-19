@@ -6,7 +6,8 @@ interface DayCardProps {
   dia: DiaEntrenamiento;
   index: number;
   onClick: () => void;
-  isCompleted?: boolean;
+  /** 'today' = terminado hoy; 'week' = terminado antes en la semana actual. */
+  completion?: 'today' | 'week';
 }
 
 const DAY_ICONS = [
@@ -39,7 +40,7 @@ const DAY_COLORS = [
   },
 ];
 
-export const DayCard: React.FC<DayCardProps> = ({ dia, index, onClick, isCompleted }) => {
+export const DayCard: React.FC<DayCardProps> = ({ dia, index, onClick, completion }) => {
   const theme = DAY_COLORS[index % DAY_COLORS.length];
   const icon = DAY_ICONS[index % DAY_ICONS.length];
 
@@ -62,9 +63,9 @@ export const DayCard: React.FC<DayCardProps> = ({ dia, index, onClick, isComplet
               <MapPin className="w-3 h-3 text-zinc-500" />
               {dia.ubicacion}
             </span>
-            {isCompleted && (
+            {completion && (
               <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded-full">
-                COMPLETADO HOY
+                {completion === 'today' ? 'COMPLETADO HOY' : 'COMPLETADO ESTA SEMANA'}
               </span>
             )}
           </div>

@@ -79,13 +79,3 @@ export interface RutinaData {
   dias_entrenamiento: DiaEntrenamiento[];
 }
 
-export interface WorkoutSessionLog {
-  id: string;
-  diaId: string;
-  bloqueNombre: string;
-  tipoBloque: TipoBloque;
-  timestamp: number;
-  duracionSegundos: number;
-  completado: boolean;
-  rondas?: number;
-}

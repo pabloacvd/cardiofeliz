@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cardiofeliz-v1';
+const CACHE_NAME = 'cardiofeliz-v2';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -28,6 +28,10 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+
+  // Solo se cachean recursos propios de la app. Las llamadas a Supabase (datos y auth,
+  // que son por usuario) nunca deben servirse desde caché.
+  if (new URL(event.request.url).origin !== self.location.origin) return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import rutinaData from './data/rutina.json';
 import { RutinaData, DiaEntrenamiento, Bloque } from './types/workout';
 import { Header } from './components/Header';
@@ -8,12 +8,18 @@ import { ActiveWorkoutView } from './views/ActiveWorkoutView';
 import { WorkoutCompleteModal } from './components/WorkoutCompleteModal';
 import { useWakeLock } from './hooks/useWakeLock';
 import { useAudioBeeps } from './hooks/useAudioBeeps';
-import { useWorkoutStorage } from './hooks/useWorkoutStorage';
+import { useActivities } from './hooks/useActivities';
+import { useBlockProgress } from './hooks/useBlockProgress';
+import { useCurrentUser } from './auth/AuthContext';
+import { todayKey, weekStart } from './gamification';
+import { buildWorkoutDayActivity, isDayFinished, weekCompletedDays } from './utils/workoutDay';
+
 
 type ViewMode = 'home' | 'day_detail' | 'active_workout';
 
 export default function App() {
-  const rutina = rutinaData as RutinaData;
+  const user = useCurrentUser();
+  const rutina = { ...(rutinaData as RutinaData), usuario: user.displayName };
   const [currentView, setCurrentView] = useState<ViewMode>('home');
   const [selectedDay, setSelectedDay] = useState<DiaEntrenamiento | null>(null);
   const [activeBlock, setActiveBlock] = useState<Bloque | null>(null);
@@ -27,8 +33,19 @@ export default function App() {
 
   const { isLocked } = useWakeLock();
   const { isMuted, toggleMute, unlockAudio } = useAudioBeeps();
-  const { completedBlocks, completedDays, markBlockComplete, markDayComplete } =
-    useWorkoutStorage();
+  const { activities, addActivity, syncStatus } = useActivities(user.userId);
+  const { progress, recordBlock } = useBlockProgress(user.userId);
+
+  // El estado "completado" se deriva de las actividades de la semana actual y de los bloques de hoy.
+  const today = todayKey();
+  const completedDays = useMemo(
+    () => weekCompletedDays(activities, today, weekStart(today)),
+    [activities, today],
+  );
+  const completedBlocks = useMemo(
+    () => Object.fromEntries(Object.keys(progress).map((key) => [key, true])),
+    [progress],
+  );
 
   // Navigation handlers
   const handleSelectDay = (dia: DiaEntrenamiento) => {
@@ -53,11 +70,15 @@ export default function App() {
 
   const handleBlockCompleted = (totalSeconds: number, rounds?: number) => {
     if (selectedDay && activeBlock && activeBlockIndex !== null) {
-      markBlockComplete(selectedDay.id, activeBlockIndex, activeBlock.nombre, totalSeconds, rounds);
+      const updated = recordBlock(selectedDay.id, activeBlockIndex, activeBlock, totalSeconds, rounds);
 
-      // Check if this was the last block of the day
-      if (activeBlockIndex === selectedDay.bloques.length - 1) {
-        markDayComplete(selectedDay.id);
+      // El día termina cuando todos sus bloques están completados (en cualquier orden).
+      // Se guarda una sola actividad por día de rutina y fecha, aunque se repita algún bloque.
+      const alreadySaved = activities.some(
+        (a) => a.type === 'workout_day' && a.dayId === selectedDay.id && a.occurredOn === todayKey(),
+      );
+      if (!alreadySaved && isDayFinished(selectedDay, updated)) {
+        addActivity(buildWorkoutDayActivity(selectedDay, updated, todayKey()));
       }
 
       setCompletedModal({
@@ -113,6 +134,9 @@ export default function App() {
           onToggleMute={toggleMute}
           isWakeLocked={isLocked}
           onHomeClick={handleGoHome}
+          userName={user.displayName}
+          syncStatus={syncStatus}
+          onSignOut={user.signOut}
         />
       )}
 
