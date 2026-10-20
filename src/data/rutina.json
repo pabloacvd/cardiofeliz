@@ -5,34 +5,65 @@
   "dias_entrenamiento": [
     {
       "id": "dia_1",
-      "nombre": "Día 1: Zona Cardio Metabólica (HIIT & Potencia)",
-      "ubicacion": "Rincón de cardio",
-      "calentamiento": "5 min (2 min suaves en Assault Bike + 3 min movilidad articular dinámica).",
+      "nombre": "Día 1: Zona Cardio Metabólica & Funcional",
+      "ubicacion": "Rincón de cardio + Piso superior",
+      "calentamiento": "5 min de movilidad articular dinámica y activación suave.",
       "calentamiento_minutos": 5,
       "bloques": [
         {
           "id": "dia_1_bloque_a",
           "tipo": "EMOM",
-          "nombre": "Bloque A (EMOM 16 Min - 4 Rondas)",
-          "duracion_minutos": 16,
+          "nombre": "Bloque A (EMOM 15 Min - Transiciones Optimizadas en Cardio)",
+          "duracion_minutos": 15,
           "ejercicios": [
-            { "minuto": 1, "detalle": "12-15 Cal en Assault Bike" },
-            { "minuto": 2, "detalle": "30 seg SkiErg a máxima potencia + 30 seg recuperación suave" },
-            { "minuto": 3, "detalle": "45 seg Cinta con inclinación alta (12-15% a 5.5-6 km/h) / Comodín: Elíptico" },
-            { "minuto": 4, "detalle": "Descanso completo" }
+            { "minuto": 1,  "detalle": "Assault Bike - 45 seg de esfuerzo / 15 seg transición" },
+            { "minuto": 2,  "detalle": "Assault Bike - 45 seg de esfuerzo / 15 seg transición" },
+            { "minuto": 3,  "detalle": "Assault Bike - 45 seg de esfuerzo / 15 seg transición" },
+            { "minuto": 4,  "detalle": "Cambio de máquina y descanso completo" },
+            { "minuto": 5,  "detalle": "SkiErg - 45 seg de esfuerzo / 15 seg transición" },
+            { "minuto": 6,  "detalle": "SkiErg - 45 seg de esfuerzo / 15 seg transición" },
+            { "minuto": 7,  "detalle": "SkiErg - 45 seg de esfuerzo / 15 seg transición" },
+            { "minuto": 8,  "detalle": "Cambio de máquina y descanso completo" },
+            { "minuto": 9,  "detalle": "Cinta (15% inclinación a 9 km/h) - 45 seg / 15 seg transición" },
+            { "minuto": 10, "detalle": "Cinta (15% inclinación a 9 km/h) - 45 seg / 15 seg transición" },
+            { "minuto": 11, "detalle": "Cinta (15% inclinación a 9 km/h) - 45 seg / 15 seg transición" },
+            { "minuto": 12, "detalle": "Cambio de máquina y descanso completo" },
+            { "minuto": 13, "detalle": "Assault Bike o SkiErg libre - 45 seg de esfuerzo / 15 seg transición" },
+            { "minuto": 14, "detalle": "Assault Bike o SkiErg libre - 45 seg de esfuerzo / 15 seg transición" },
+            { "minuto": 15, "detalle": "Assault Bike o SkiErg libre - 45 seg de esfuerzo / 15 seg transición" }
           ]
         },
         {
-          "id": "dia_1_bloque_b",
-          "tipo": "HIIT_INTERVALS",
-          "nombre": "Bloque B (HIIT por Intervalos - 12 Min / 4 Rondas)",
-          "duracion_minutos": 12,
-          "rondas": 4,
-          "trabajo_seg": 40,
+          "id": "dia_1_bloque_b1",
+          "tipo": "TABATA",
+          "nombre": "Bloque B1 - Tabata: Slam Balls (4 Min)",
+          "rondas": 8,
+          "trabajo_seg": 20,
+          "descanso_tabata_seg": 10,
           "ejercicios": [
-            { "detalle": "SkiErg o Assault Bike (alta intensidad)", "segundos": 60 },
-            { "detalle": "Caminata inclinada en cinta (inclinación 10-12%)", "segundos": 60 },
-            { "detalle": "Descanso total", "segundos": 60 }
+            { "detalle": "Slam Balls (balón medicinal contra el suelo)" }
+          ]
+        },
+        {
+          "id": "dia_1_bloque_b2",
+          "tipo": "TABATA",
+          "nombre": "Bloque B2 - Tabata: Kettlebell Swings (4 Min)",
+          "rondas": 8,
+          "trabajo_seg": 20,
+          "descanso_tabata_seg": 10,
+          "ejercicios": [
+            { "detalle": "Kettlebell Swings" }
+          ]
+        },
+        {
+          "id": "dia_1_bloque_b3",
+          "tipo": "TABATA",
+          "nombre": "Bloque B3 - Tabata: Goblet Squats con KB (4 Min)",
+          "rondas": 8,
+          "trabajo_seg": 20,
+          "descanso_tabata_seg": 10,
+          "ejercicios": [
+            { "detalle": "Goblet Squats con Kettlebell" }
           ]
         },
         {
