@@ -1,0 +1,338 @@
+
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Plan de Cambios — CardioFeliz Workout Flow</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #1f2328;
+    background: #ffffff;
+    padding: 2rem 1rem;
+  }
+  .page { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 1.35rem; font-weight: 800; color: #1f2328; margin-bottom: 0.25rem; }
+  .subtitle { color: #57606a; font-size: 0.82rem; margin-bottom: 2rem; }
+  .section { margin-bottom: 1.6rem; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
+  .section-header {
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    background: #f7f8fa; padding: 0.85rem 1rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .num {
+    min-width: 26px; height: 26px; border-radius: 50%;
+    background: #3b82d4; color: #fff;
+    font-weight: 800; font-size: 0.78rem;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 1px;
+  }
+  .section-title { font-weight: 700; font-size: 0.92rem; color: #1f2328; }
+  .section-scope { font-size: 0.78rem; color: #57606a; margin-top: 0.15rem; }
+  .section-body { padding: 0.85rem 1rem; }
+  .label {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #57606a; margin-bottom: 0.35rem;
+    margin-top: 0.75rem;
+  }
+  .label:first-child { margin-top: 0; }
+  p { font-size: 0.85rem; color: #1f2328; margin-bottom: 0.4rem; }
+  ul { padding-left: 1.2rem; margin-bottom: 0.4rem; }
+  li { font-size: 0.84rem; color: #1f2328; margin-bottom: 0.25rem; }
+  code {
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 0.78rem;
+    background: #f0f2f5; border: 1px solid #e5e7eb;
+    border-radius: 4px; padding: 0.1em 0.35em; color: #7c5cd8;
+  }
+  .tag {
+    display: inline-block; font-size: 0.68rem; font-weight: 700;
+    padding: 0.15em 0.6em; border-radius: 99px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .tag-file { background: #eff6ff; color: #3b82d4; border: 1px solid #bfdbfe; }
+  .tag-new { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+  .tag-edit { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+  .tag-type { background: #faf5ff; color: #7c5cd8; border: 1px solid #e9d5ff; }
+  .files { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.6rem; margin-top: 0.3rem; }
+  .divider { border: none; border-top: 1px solid #e5e7eb; margin: 0.65rem 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 0.4rem; }
+  th { background: #f7f8fa; text-align: left; padding: 0.45rem 0.65rem; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #57606a; border-bottom: 1px solid #e5e7eb; }
+  td { padding: 0.45rem 0.65rem; border-bottom: 1px solid #f0f2f5; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .footer { text-align: center; font-size: 0.72rem; color: #57606a; padding-top: 1.5rem; margin-top: 1.5rem; border-top: 1px solid #e5e7eb; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Plan de Cambios — CardioFeliz Workout Flow</h1>
+  <p class="subtitle">8 mejoras al flujo de entrenamiento · Julio 2025</p>
+
+  
+  <div class="section">
+    <div class="section-header">
+      <div class="num">1</div>
+      <div>
+        <div class="section-title">Botón "Iniciar Rutina" arriba, antes del calentamiento</div>
+        <div class="section-scope">DayDetailView.tsx</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="label">Qué cambia</div>
+      <p>El botón CTA principal se mueve del final de la vista al bloque de encabezado, entre el header del día y la sección <code>&lt;WarmupCard&gt;</code>.</p>
+      <div class="label">Texto del botón</div>
+      <p>Se elimina el texto <em>"Bloque A"</em>. El nuevo texto es simplemente <strong>"Iniciar Rutina"</strong> (ver cambio 2 para el comportamiento).</p>
+      <div class="label">Archivos</div>
+      <div class="files">
+        <span class="tag tag-edit tag-file">DayDetailView.tsx</span>
+      </div>
+      <div class="label">Detalle de implementación</div>
+      <ul>
+        <li>Mover el bloque <code>&lt;div&gt;</code> del botón desde el final de la función hacia inmediatamente después del "Day Header" <code>&lt;div&gt;</code>.</li>
+        <li>Cambiar <code>onClick={() =&gt; onStartBlock(dia.bloques[0])}</code> por una función que inicie el calentamiento (ver cambio 2).</li>
+      </ul>
+    </div>
+  </div>
+
+  
+  <div class="section">
+    <div class="section-header">
+      <div class="num">2</div>
+      <div>
+        <div class="section-title">Calentamiento con timer variable; "Iniciar Rutina" abre calentamiento</div>
+        <div class="section-scope">workout.ts · rutina.json · WarmupCard.tsx · DayDetailView.tsx</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="label">Modelo de datos</div>
+      <p>Agregar campo opcional <code>calentamiento_minutos?: number</code> en la interfaz <code>DiaEntrenamiento</code> en <code>workout.ts</code>.</p>
+      <p>Actualizar los 5 días en <code>rutina.json</code> para que cada uno tenga <code>"calentamiento_minutos": 5</code> (todos dicen "5 min" actualmente). Los días sin tiempo definido simplemente no incluyen el campo.</p>
+      <div class="label">Lógica del timer</div>
+      <ul>
+        <li>Si <code>calentamiento_minutos</code> existe → el timer arranca con ese valor en segundos (<code>calentamiento_minutos × 60</code>). Al finalizar el timer, aparece el botón <strong>"Pasar al Bloque A"</strong>.</li>
+        <li>Si <code>calentamiento_minutos</code> <em>no</em> existe → no hay timer, solo se muestra el texto del calentamiento y el botón <strong>"Pasar al Bloque A"</strong> disponible de inmediato.</li>
+      </ul>
+      <div class="label">Comportamiento del botón "Iniciar Rutina" (cambio 1)</div>
+      <p>En vez de llamar directamente <code>onStartBlock</code>, el botón mueve la vista a la pantalla completa de calentamiento (ver cambio 4). Desde allí el usuario puede iniciar el timer y luego presionar <strong>"Pasar al Bloque A"</strong> para ir al primer bloque.</p>
+      <div class="label">Editor de rutina</div>
+      <p>Agregar un campo numérico <code>Tiempo de Calentamiento (min)</code> en <code>DayEditor.tsx</code>, con placeholder "Opcional". Propagar el patch a través de <code>onUpdateDay</code>.</p>
+      <div class="label">Archivos</div>
+      <div class="files">
+        <span class="tag tag-edit tag-file">types/workout.ts</span>
+        <span class="tag tag-edit tag-file">data/rutina.json</span>
+        <span class="tag tag-edit tag-file">components/WarmupCard.tsx</span>
+        <span class="tag tag-edit tag-file">components/routine-editor/DayEditor.tsx</span>
+        <span class="tag tag-edit tag-file">views/DayDetailView.tsx</span>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="section">
+    <div class="section-header">
+      <div class="num">3</div>
+      <div>
+        <div class="section-title">Renombrar "Calentamiento Sugerido" → "Calentamiento"</div>
+        <div class="section-scope">WarmupCard.tsx</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="label">Qué cambia</div>
+      <p>Reemplazar el texto <code>"Calentamiento Sugerido"</code> por <code>"Calentamiento"</code> en el título del card.</p>
+      <div class="label">Archivos</div>
+      <div class="files">
+        <span class="tag tag-edit tag-file">components/WarmupCard.tsx</span>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="section">
+    <div class="section-header">
+      <div class="num">4</div>
+      <div>
+        <div class="section-title">Calentamiento a pantalla completa (igual que un bloque)</div>
+        <div class="section-scope">WarmupCard.tsx · App.tsx · DayDetailView.tsx</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="label">Nuevo componente / vista</div>
+      <p>Crear <code>WarmupView.tsx</code> — pantalla full-screen con estilo similar a <code>ActiveWorkoutView.tsx</code>:</p>
+      <ul>
+        <li>Header con botón <strong>"Volver"</strong> (ArrowLeft) que regresa al detalle del día sin confirmación.</li>
+        <li>Nombre del día y badge de tipo en el centro del header.</li>
+        <li>Texto del calentamiento.</li>
+        <li>Si hay <code>calentamiento_minutos</code>: timer grande con play/pause/reset + botón <strong>"Pasar al Bloque A"</strong> (habilitado siempre, no solo al terminar).</li>
+        <li>Si no hay <code>calentamiento_minutos</code>: solo botón <strong>"Pasar al Bloque A"</strong>.</li>
+      </ul>
+      <div class="label">Wake Lock</div>
+      <p>Llamar a <code>requestWakeLock()</code> al montar la vista (igual que <code>ActiveWorkoutView</code>), liberarlo al salir.</p>
+      <div class="label">Navegación en App.tsx</div>
+      <p>Agregar estado de vista <code>'warmup'</code> al tipo <code>ViewMode</code>. Agregar handler <code>handleStartWarmup</code> y <code>handleWarmupDone</code> que llame a <code>handleStartBlock(dia.bloques[0])</code>.</p>
+      <div class="label">Archivos</div>
+      <div class="files">
+        <span class="tag tag-new tag-file">views/WarmupView.tsx</span>
+        <span class="tag tag-edit tag-file">App.tsx</span>
+        <span class="tag tag-edit tag-file">views/DayDetailView.tsx</span>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="section">
+    <div class="section-header">
+      <div class="num">5</div>
+      <div>
+        <div class="section-title">Wake Lock global — pantalla siempre encendida con la app abierta</div>
+        <div class="section-scope">App.tsx · useWakeLock.ts</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="label">Problema actual</div>
+      <p>El <code>useWakeLock</code> solo se activa dentro de <code>ActiveWorkoutView</code>. En vistas sin timer (como detalle de día o calentamiento sin timer), la pantalla se apaga.</p>
+      <div class="label">Solución</div>
+      <p>En <code>App.tsx</code> ya existe una instancia de <code>useWakeLock()</code>. Extender su uso para solicitar el lock en todas las vistas excepto <code>'home'</code> y <code>'analytics'</code>: cuando el usuario entra a <code>day_detail</code>, <code>warmup</code> o <code>active_workout</code>, se llama <code>requestWakeLock()</code>. Al volver a <code>home</code> o <code>analytics</code> se llama <code>releaseWakeLock()</code>.</p>
+      <div class="label">Indicador visual</div>
+      <p>El indicador de wake lock (punto verde) que hoy solo existe en <code>ActiveWorkoutView</code> también aparecerá en <code>WarmupView</code>.</p>
+      <div class="label">Archivos</div>
+      <div class="files">
+        <span class="tag tag-edit tag-file">App.tsx</span>
+        <span class="tag tag-edit tag-file">hooks/useWakeLock.ts</span>
+      </div>
+      <div class="label">Detalle</div>
+      <p><code>useWakeLock</code> ya tiene lógica de re-adquisición en <code>visibilitychange</code>. Basta con exponer <code>releaseWakeLock</code> en <code>App.tsx</code> y llamarlo al navegar a home/analytics.</p>
+    </div>
+  </div>
+
+  
+  <div class="section">
+    <div class="section-header">
+      <div class="num">6</div>
+      <div>
+        <div class="section-title">"Salir" → "Volver" en ActiveWorkoutView; regresa al detalle del día</div>
+        <div class="section-scope">ActiveWorkoutView.tsx</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="label">Qué cambia</div>
+      <ul>
+        <li>El label del botón top-left pasa de <code>"Salir"</code> a <code>"Volver"</code>.</li>
+        <li>El modal de confirmación mantiene su título <em>"¿Detener Entrenamiento?"</em> y su copy actual — sigue siendo correcto.</li>
+        <li><code>onExit</code> en <code>App.tsx</code> ya llama a <code>handleExitActiveWorkout</code> que navega a <code>day_detail</code> — comportamiento correcto, no hay que cambiar la lógica.</li>
+      </ul>
+      <div class="label">Archivos</div>
+      <div class="files">
+        <span class="tag tag-edit tag-file">views/ActiveWorkoutView.tsx</span>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="section">
+    <div class="section-header">
+      <div class="num">7</div>
+      <div>
+        <div class="section-title">Clic en bloque → pantalla de detalle previa, no timer directo</div>
+        <div class="section-scope">BlockCard.tsx · App.tsx · nueva BlockDetailView.tsx</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="label">Flujo nuevo</div>
+      <p>Al presionar el botón de acción de un bloque (sea desde <code>BlockCard</code> o desde el botón "Iniciar Rutina"), en vez de ir directo al timer, se navega a una pantalla de detalle del bloque.</p>
+      <div class="label">Nueva vista: BlockDetailView</div>
+      <p>Pantalla full-screen similar a las vistas de timer existentes:</p>
+      <ul>
+        <li>Header: botón <strong>"Volver"</strong> (ArrowLeft) + nombre del día al centro.</li>
+        <li>Badge de tipo + nombre del bloque.</li>
+        <li>Metadata del bloque (duración, rondas, descanso — igual que en <code>BlockCard</code>).</li>
+        <li>Lista de todos los ejercicios (igual que en <code>BlockCard</code> expandido).</li>
+        <li>Botón CTA grande al pie: texto dinámico según tipo:
+          <ul>
+            <li>HIIT_INTERVALS → <strong>"Iniciar HIIT"</strong></li>
+            <li>FINISHER → <strong>"Iniciar Finisher"</strong></li>
+            <li>EMOM → <strong>"Iniciar EMOM"</strong></li>
+            <li>AMRAP → <strong>"Iniciar AMRAP"</strong></li>
+            <li>TABATA → <strong>"Iniciar Tabata"</strong></li>
+            <li>TRISERIE → <strong>"Iniciar Triserie"</strong></li>
+            <li>DENSITY → <strong>"Iniciar Density"</strong></li>
+            <li>FOR_TIME → <strong>"Iniciar For Time"</strong></li>
+          </ul>
+        </li>
+      </ul>
+      <div class="label">Navegación en App.tsx</div>
+      <p>Agregar estado de vista <code>'block_detail'</code>. Handler <code>handleShowBlockDetail(bloque)</code> setea <code>activeBlock</code> y navega a <code>block_detail</code>. Handler <code>handleConfirmStartBlock</code> navega a <code>active_workout</code>. El botón "Volver" de <code>BlockDetailView</code> navega a <code>day_detail</code>.</p>
+      <div class="label">Archivos</div>
+      <div class="files">
+        <span class="tag tag-new tag-file">views/BlockDetailView.tsx</span>
+        <span class="tag tag-edit tag-file">App.tsx</span>
+        <span class="tag tag-edit tag-file">views/DayDetailView.tsx</span>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="section">
+    <div class="section-header">
+      <div class="num">8</div>
+      <div>
+        <div class="section-title">BlockCard: botón "Ver Detalles" en vez de "Iniciar Temporizador de Bloque"</div>
+        <div class="section-scope">BlockCard.tsx</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="label">Qué cambia</div>
+      <p>El botón al pie de cada <code>BlockCard</code> expandido deja de decir <em>"Iniciar Temporizador de Bloque"</em> / <em>"Repetir Bloque"</em> y pasa a decir <strong>"Ver Detalles"</strong> (con ícono de <code>Eye</code> o <code>ChevronRight</code>).</p>
+      <p>Al presionar, en vez de llamar directamente a <code>onStart()</code> (que antes abría el timer), ahora llama a <code>onShowDetail()</code> — que en <code>DayDetailView</code> se conecta al nuevo handler <code>handleShowBlockDetail</code> de App.tsx.</p>
+      <div class="label">Prop nueva</div>
+      <p>Renombrar prop <code>onStart</code> a <code>onShowDetail</code> en <code>BlockCardProps</code>, o agregar prop separada y mantener <code>onStart</code> solo para compatibilidad interna.</p>
+      <div class="label">Archivos</div>
+      <div class="files">
+        <span class="tag tag-edit tag-file">components/BlockCard.tsx</span>
+        <span class="tag tag-edit tag-file">views/DayDetailView.tsx</span>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="section">
+    <div class="section-header">
+      <div class="num" style="background:#57606a">∑</div>
+      <div>
+        <div class="section-title">Resumen de archivos afectados</div>
+        <div class="section-scope">Todos los cambios</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <table>
+        <thead>
+          <tr>
+            <th>Archivo</th>
+            <th>Acción</th>
+            <th>Cambios #</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>types/workout.ts</code></td><td><span class="tag tag-edit">Editar</span></td><td>2</td></tr>
+          <tr><td><code>data/rutina.json</code></td><td><span class="tag tag-edit">Editar</span></td><td>2</td></tr>
+          <tr><td><code>views/DayDetailView.tsx</code></td><td><span class="tag tag-edit">Editar</span></td><td>1, 2, 4, 7, 8</td></tr>
+          <tr><td><code>views/ActiveWorkoutView.tsx</code></td><td><span class="tag tag-edit">Editar</span></td><td>6</td></tr>
+          <tr><td><code>views/WarmupView.tsx</code></td><td><span class="tag tag-new">Nuevo</span></td><td>4</td></tr>
+          <tr><td><code>views/BlockDetailView.tsx</code></td><td><span class="tag tag-new">Nuevo</span></td><td>7</td></tr>
+          <tr><td><code>components/WarmupCard.tsx</code></td><td><span class="tag tag-edit">Editar</span></td><td>2, 3</td></tr>
+          <tr><td><code>components/BlockCard.tsx</code></td><td><span class="tag tag-edit">Editar</span></td><td>8</td></tr>
+          <tr><td><code>components/routine-editor/DayEditor.tsx</code></td><td><span class="tag tag-edit">Editar</span></td><td>2</td></tr>
+          <tr><td><code>App.tsx</code></td><td><span class="tag tag-edit">Editar</span></td><td>4, 5, 7</td></tr>
+          <tr><td><code>hooks/useWakeLock.ts</code></td><td><span class="tag tag-edit">Editar</span></td><td>5</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">Made with IBM Bob</div>
+</div>
+</body>
+</html>

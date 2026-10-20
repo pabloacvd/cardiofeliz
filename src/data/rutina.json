@@ -8,6 +8,7 @@
       "nombre": "Día 1: Zona Cardio Metabólica (HIIT & Potencia)",
       "ubicacion": "Rincón de cardio",
       "calentamiento": "5 min (2 min suaves en Assault Bike + 3 min movilidad articular dinámica).",
+      "calentamiento_minutos": 5,
       "bloques": [
         {
           "id": "dia_1_bloque_a",
@@ -52,6 +53,7 @@
       "nombre": "Día 2: Zona Mancuernas",
       "ubicacion": "Sector de pesas libres",
       "calentamiento": "5 min movilidad articular + 2 rondas (10 sentadillas libres, 10 puentes de glúteo, 15 jumping jacks).",
+      "calentamiento_minutos": 5,
       "bloques": [
         {
           "id": "dia_2_bloque_a",
@@ -97,6 +99,7 @@
       "nombre": "Día 3: Piso Superior (Funcional & Kettlebell)",
       "ubicacion": "Piso superior",
       "calentamiento": "5 min movilidad dinámica articular + 2 rondas (10 sentadillas libres, 10 puentes de glúteo, 15 jumping jacks).",
+      "calentamiento_minutos": 5,
       "bloques": [
         {
           "id": "dia_3_bloque_a",

@@ -58,7 +58,7 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           className="flex items-center gap-1 text-xs font-bold text-zinc-400 hover:text-white bg-surface-900 border border-zinc-800 px-3 py-1.5 rounded-xl active:bg-surface-800"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Salir</span>
+          <span>Volver</span>
         </button>
 
         <div className="text-center flex-1 px-2 overflow-hidden">

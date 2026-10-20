@@ -17,7 +17,7 @@ interface DayEditorProps {
   dia: DiaEntrenamiento;
   index: number;
   totalDays: number;
-  onUpdateDay: (patch: { nombre?: string; ubicacion?: string; calentamiento?: string }) => void;
+  onUpdateDay: (patch: { nombre?: string; ubicacion?: string; calentamiento?: string; calentamiento_minutos?: number | null }) => void;
   onRemoveDay: () => void;
   onMoveDay: (fromIndex: number, toIndex: number) => void;
   onAddBlock: (tipo: TipoBloque) => void;
@@ -194,7 +194,28 @@ export const DayEditor: React.FC<DayEditorProps> = ({
                 placeholder="Ej: 5 min caminata inclinada o movilidad articular..."
                 className="w-full rounded-xl bg-black border border-zinc-700 px-3.5 py-2.5 text-base text-white focus:outline-none focus:border-cardio-primary resize-none"
               />
-              <div className="flex justify-end">
+              <div className="flex justify-between items-center mt-1">
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor={`day-warmup-min-${dia.id}`}
+                    className="text-[11px] font-bold text-zinc-400 whitespace-nowrap"
+                  >
+                    Duración (min)
+                  </label>
+                  <input
+                    id={`day-warmup-min-${dia.id}`}
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={dia.calentamiento_minutos ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? null : Number(e.target.value);
+                      onUpdateDay({ calentamiento_minutos: val });
+                    }}
+                    placeholder="Opcional"
+                    className="w-20 rounded-lg bg-black border border-zinc-700 px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-cardio-primary"
+                  />
+                </div>
                 <span className="text-[10px] text-zinc-500">{dia.calentamiento.length}/300</span>
               </div>
             </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Bloque, EjercicioEMOM } from '../types/workout';
-import { ChevronDown, ChevronUp, Play, Clock, CheckCircle2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Eye, Clock, CheckCircle2 } from 'lucide-react';
 import {
   buildFinisherPhases,
   finisherTotalSeconds,
@@ -12,13 +12,13 @@ import {
 interface BlockCardProps {
   bloque: Bloque;
   index?: number;
-  onStart: () => void;
+  onShowDetail: () => void;
   isCompleted?: boolean;
 }
 
 export const BlockCard: React.FC<BlockCardProps> = ({
   bloque,
-  onStart,
+  onShowDetail,
   isCompleted = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -150,11 +150,11 @@ export const BlockCard: React.FC<BlockCardProps> = ({
 
           {/* Big Action Button */}
           <button
-            onClick={onStart}
+            onClick={onShowDetail}
             className="w-full py-3.5 px-4 rounded-xl bg-cardio-primary hover:bg-emerald-400 active:scale-[0.98] text-black font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all"
           >
-            <Play className="w-4 h-4 fill-black" />
-            <span>{isCompleted ? 'Repetir Bloque' : 'Iniciar Temporizador de Bloque'}</span>
+            <Eye className="w-4 h-4" />
+            <span>Ver Detalles</span>
           </button>
         </div>
       )}

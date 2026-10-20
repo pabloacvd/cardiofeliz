@@ -1,8 +1,10 @@
-import React, { useMemo, useState, Suspense } from 'react';
+import React, { useMemo, useState, Suspense, useEffect } from 'react';
 import { DiaEntrenamiento, Bloque } from './types/workout';
 import { Header } from './components/Header';
 import { HomeView } from './views/HomeView';
 import { DayDetailView } from './views/DayDetailView';
+import { WarmupView } from './views/WarmupView';
+import { BlockDetailView } from './views/BlockDetailView';
 import { ActiveWorkoutView } from './views/ActiveWorkoutView';
 import { RoutineEditorView } from './views/RoutineEditorView';
 import { WorkoutCompleteModal } from './components/WorkoutCompleteModal';
@@ -22,12 +24,12 @@ import { useBlockProgress } from './hooks/useBlockProgress';
 import { useRoutine } from './hooks/useRoutine';
 import { useCurrentUser } from './auth/AuthContext';
 import { computeGameSummary, logOutcome, todayKey, weekStart, withActivity, type LogOutcome } from './gamification';
-import { buildWorkoutDayActivity, isDayFinished, weekCompletedDays } from './utils/workoutDay';
+import { blockKey, buildWorkoutDayActivity, isDayFinished, weekCompletedDays } from './utils/workoutDay';
 import { buildToasts, withClaimedAchievements } from './utils/celebrations';
 
 const AnalyticsView = React.lazy(() => import('./views/AnalyticsView'));
 
-type ViewMode = 'home' | 'day_detail' | 'active_workout' | 'analytics' | 'settings';
+type ViewMode = 'home' | 'day_detail' | 'warmup' | 'block_detail' | 'active_workout' | 'analytics' | 'settings';
 
 export default function App() {
   const user = useCurrentUser();
@@ -54,7 +56,7 @@ export default function App() {
     dayResult?: LogOutcome | null;
   } | null>(null);
 
-  const { isLocked } = useWakeLock();
+  const { isLocked, requestWakeLock, releaseWakeLock } = useWakeLock();
   const { isMuted, toggleMute, unlockAudio, playVictory } = useAudioBeeps();
   const { activities, addActivity, updateActivity, removeActivity, fillMissingCalories, syncStatus } =
     useActivities(user.userId);
@@ -93,6 +95,16 @@ export default function App() {
     [progress],
   );
 
+  // Global Wake Lock: activate whenever the user is training or in a workout view.
+  useEffect(() => {
+    const workoutViews: ViewMode[] = ['day_detail', 'warmup', 'block_detail', 'active_workout'];
+    if (workoutViews.includes(currentView)) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+  }, [currentView, requestWakeLock, releaseWakeLock]);
+
   // Navigation handlers
   const handleSelectDay = (dia: DiaEntrenamiento) => {
     unlockAudio();
@@ -101,6 +113,22 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  /** Abre la pantalla de calentamiento antes del primer bloque. */
+  const handleStartWarmup = () => {
+    unlockAudio();
+    setCurrentView('warmup');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  /** Muestra el detalle de un bloque antes de iniciar el timer. */
+  const handleShowBlockDetail = (bloque: Bloque) => {
+    unlockAudio();
+    setActiveBlock(bloque);
+    setCurrentView('block_detail');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  /** Inicia el timer del bloque activo (desde BlockDetailView). */
   const handleStartBlock = (bloque: Bloque) => {
     unlockAudio();
     setActiveBlock(bloque);
@@ -212,7 +240,7 @@ export default function App() {
       )}
 
       {/* Main Container */}
-      <main className={`flex-1 max-w-md w-full mx-auto ${currentView === 'active_workout' ? '' : 'px-4 py-3'}`}>
+      <main className={`flex-1 max-w-md w-full mx-auto ${currentView === 'active_workout' || currentView === 'warmup' || currentView === 'block_detail' ? '' : 'px-4 py-3'}`}>
         {currentView === 'home' && (
           <HomeView
             rutina={rutina}
@@ -247,8 +275,30 @@ export default function App() {
           <DayDetailView
             dia={selectedDay}
             onBack={handleGoHome}
-            onStartBlock={handleStartBlock}
+            onStartWarmup={handleStartWarmup}
+            onShowBlockDetail={handleShowBlockDetail}
             completedBlocks={completedBlocks}
+          />
+        )}
+
+        {currentView === 'warmup' && selectedDay && (
+          <WarmupView
+            dia={selectedDay}
+            onBack={() => setCurrentView('day_detail')}
+            onStartFirstBlock={() => {
+              const firstBlock = selectedDay.bloques[0];
+              if (firstBlock) handleShowBlockDetail(firstBlock);
+            }}
+          />
+        )}
+
+        {currentView === 'block_detail' && activeBlock && selectedDay && (
+          <BlockDetailView
+            bloque={activeBlock}
+            diaNombre={selectedDay.nombre}
+            onBack={() => setCurrentView('day_detail')}
+            onStart={() => handleStartBlock(activeBlock)}
+            isCompleted={activeBlock.id !== undefined && !!completedBlocks[blockKey(selectedDay.id, activeBlock.id!)]}
           />
         )}
 

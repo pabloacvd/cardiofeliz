@@ -8,14 +8,16 @@ import { ArrowLeft, MapPin, Play } from 'lucide-react';
 interface DayDetailViewProps {
   dia: DiaEntrenamiento;
   onBack: () => void;
-  onStartBlock: (bloque: Bloque) => void;
+  onStartWarmup: () => void;
+  onShowBlockDetail: (bloque: Bloque) => void;
   completedBlocks?: Record<string, boolean>;
 }
 
 export const DayDetailView: React.FC<DayDetailViewProps> = ({
   dia,
   onBack,
-  onStartBlock,
+  onStartWarmup,
+  onShowBlockDetail,
   completedBlocks = {},
 }) => {
   return (
@@ -46,8 +48,22 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
         </h2>
       </div>
 
+      {/* Start full routine CTA — arriba, antes del calentamiento */}
+      {dia.bloques.length > 0 && (
+        <button
+          onClick={onStartWarmup}
+          className="w-full py-4 px-5 rounded-2xl bg-gradient-to-r from-cardio-primary to-emerald-400 text-black font-extrabold text-base flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-500/25 active:scale-[0.98] transition-transform"
+        >
+          <Play className="w-5 h-5 fill-black" />
+          <span>Iniciar Rutina</span>
+        </button>
+      )}
+
       {/* Warmup Section */}
-      <WarmupCard calentamiento={dia.calentamiento} />
+      <WarmupCard
+        calentamiento={dia.calentamiento}
+        calentamientoMinutos={dia.calentamiento_minutos}
+      />
 
       {/* Blocks Section */}
       <div className="space-y-1">
@@ -64,23 +80,10 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
             bloque={bloque}
             index={idx}
             isCompleted={bloque.id !== undefined && !!completedBlocks[blockKey(dia.id, bloque.id)]}
-            onStart={() => onStartBlock(bloque)}
+            onShowDetail={() => onShowBlockDetail(bloque)}
           />
         ))}
       </div>
-
-      {/* Start full routine shortcut */}
-      {dia.bloques.length > 0 && (
-        <div className="pt-2">
-          <button
-            onClick={() => onStartBlock(dia.bloques[0])}
-            className="w-full py-4 px-5 rounded-2xl bg-gradient-to-r from-cardio-primary to-emerald-400 text-black font-extrabold text-base flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-500/25 active:scale-[0.98] transition-transform"
-          >
-            <Play className="w-5 h-5 fill-black" />
-            <span>Iniciar Rutina (Bloque A)</span>
-          </button>
-        </div>
-      )}
     </div>
   );
 };

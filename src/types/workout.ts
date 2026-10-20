@@ -103,6 +103,8 @@ export interface DiaEntrenamiento {
   nombre: string;
   ubicacion: string;
   calentamiento: string;
+  /** Duración del calentamiento en minutos. Si está definido, se muestra un timer. */
+  calentamiento_minutos?: number;
   bloques: Bloque[];
 }
 

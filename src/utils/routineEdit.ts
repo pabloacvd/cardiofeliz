@@ -113,7 +113,7 @@ export function addDay(rutina: RutinaData): RutinaData {
 export function updateDay(
   rutina: RutinaData,
   diaId: string,
-  patch: { nombre?: string; ubicacion?: string; calentamiento?: string },
+  patch: { nombre?: string; ubicacion?: string; calentamiento?: string; calentamiento_minutos?: number | null },
 ): RutinaData {
   const next = cloneRutina(rutina);
   const day = next.dias_entrenamiento.find((d) => d.id === diaId);
@@ -122,6 +122,13 @@ export function updateDay(
   if (patch.nombre !== undefined) day.nombre = patch.nombre;
   if (patch.ubicacion !== undefined) day.ubicacion = patch.ubicacion;
   if (patch.calentamiento !== undefined) day.calentamiento = patch.calentamiento;
+  if (patch.calentamiento_minutos !== undefined) {
+    if (patch.calentamiento_minutos === null) {
+      delete day.calentamiento_minutos;
+    } else {
+      day.calentamiento_minutos = patch.calentamiento_minutos;
+    }
+  }
 
   return next;
 }
