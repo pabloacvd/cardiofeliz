@@ -15,6 +15,7 @@ interface BlockDetailViewProps {
   onBack: () => void;
   onStart: () => void;
   isCompleted?: boolean;
+  isWakeLocked?: boolean;
 }
 
 const getBadgeStyle = (tipo: TipoBloque) => {
@@ -78,6 +79,7 @@ export const BlockDetailView: React.FC<BlockDetailViewProps> = ({
   onBack,
   onStart,
   isCompleted = false,
+  isWakeLocked = false,
 }) => {
   const meta = getBlockMeta(bloque);
 
@@ -102,7 +104,14 @@ export const BlockDetailView: React.FC<BlockDetailViewProps> = ({
           </h1>
         </div>
 
-        <div className="w-16" />
+        <div className="w-16 flex justify-end">
+          <span
+            className={`w-2.5 h-2.5 rounded-full ${
+              isWakeLocked ? 'bg-emerald-400 shadow-[0_0_8px_#22c55e]' : 'bg-zinc-700'
+            }`}
+            title={isWakeLocked ? 'Pantalla protegida contra bloqueo' : 'Wake lock inactivo'}
+          />
+        </div>
       </div>
 
       {/* Body */}

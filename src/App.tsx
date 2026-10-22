@@ -103,7 +103,7 @@ export default function App() {
     } else {
       releaseWakeLock();
     }
-  }, [currentView, requestWakeLock, releaseWakeLock]);
+  }, [currentView, activeBlock, requestWakeLock, releaseWakeLock]);
 
   // Navigation handlers
   const handleSelectDay = (dia: DiaEntrenamiento) => {
@@ -176,7 +176,8 @@ export default function App() {
       if (nextBlock) {
         setCompletedModal(null);
         setActiveBlock(nextBlock);
-        setCurrentView('active_workout');
+        setCurrentView('block_detail');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
     }
@@ -299,15 +300,18 @@ export default function App() {
             onBack={() => setCurrentView('day_detail')}
             onStart={() => handleStartBlock(activeBlock)}
             isCompleted={activeBlock.id !== undefined && !!completedBlocks[blockKey(selectedDay.id, activeBlock.id!)]}
+            isWakeLocked={isLocked}
           />
         )}
 
         {currentView === 'active_workout' && activeBlock && selectedDay && (
           <ActiveWorkoutView
+            key={activeBlock.id}
             bloque={activeBlock}
             diaNombre={selectedDay.nombre}
             onExit={handleExitActiveWorkout}
             onBlockCompleted={handleBlockCompleted}
+            isWakeLocked={isLocked}
           />
         )}
 

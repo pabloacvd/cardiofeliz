@@ -101,8 +101,19 @@ describe('isRestExercise / getFinisherRounds', () => {
 });
 
 describe('buildFinisherPhases', () => {
-  it('HIIT Día 1 B: divide en trabajo/transición y descansa 60 s, 4 rondas = 12 min', () => {
-    const phases = buildFinisherPhases(findBloque('dia_1', 'dia_1_bloque_b') as never);
+  it('HIIT: divide en trabajo/transición y descansa 60 s, 4 rondas = 12 min', () => {
+    const hiitBlock = {
+      tipo: 'HIIT_INTERVALS' as const,
+      nombre: 'HIIT Test',
+      rondas: 4,
+      trabajo_seg: 40,
+      ejercicios: [
+        { detalle: 'Ejercicio 1', segundos: 60 },
+        { detalle: 'Ejercicio 2', segundos: 60 },
+        { detalle: 'Descanso total', segundos: 60 },
+      ],
+    };
+    const phases = buildFinisherPhases(hiitBlock);
 
     expect(phases).toHaveLength(20);
     const firstRound = phases.slice(0, 5).map((p) => [p.kind, p.seconds, p.exerciseIndex]);

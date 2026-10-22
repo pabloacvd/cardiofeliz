@@ -19,15 +19,12 @@ export const WarmupView: React.FC<WarmupViewProps> = ({ dia, onBack, onStartFirs
   const [isRunning, setIsRunning] = useState(false);
   const timerDone = hasTimer && secondsLeft === 0;
 
-  const { requestWakeLock, releaseWakeLock, isLocked } = useWakeLock();
+  const { requestWakeLock, isLocked } = useWakeLock();
   const { playGo, playCountdown, unlockAudio } = useAudioBeeps();
 
   useEffect(() => {
     requestWakeLock();
-    return () => {
-      releaseWakeLock();
-    };
-  }, [requestWakeLock, releaseWakeLock]);
+  }, [requestWakeLock]);
 
   useEffect(() => {
     if (!isRunning) return;

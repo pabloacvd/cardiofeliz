@@ -15,6 +15,7 @@ interface ActiveWorkoutViewProps {
   diaNombre: string;
   onExit: () => void;
   onBlockCompleted: (totalSeconds: number, rounds?: number) => void;
+  isWakeLocked?: boolean;
 }
 
 export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
@@ -22,18 +23,17 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   diaNombre,
   onExit,
   onBlockCompleted,
+  isWakeLocked: propIsWakeLocked,
 }) => {
-  const { isLocked, requestWakeLock, releaseWakeLock } = useWakeLock();
+  const { isLocked, requestWakeLock } = useWakeLock();
+  const effectiveIsLocked = propIsWakeLocked ?? isLocked;
   const { playCountdown, playGo, playRest, playVictory, unlockAudio } = useAudioBeeps();
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
-  // Request Wake Lock on mount to prevent iPhone screen sleep
+  // Request Wake Lock on mount to prevent screen sleep
   useEffect(() => {
     requestWakeLock();
-    return () => {
-      releaseWakeLock();
-    };
-  }, [requestWakeLock, releaseWakeLock]);
+  }, [requestWakeLock]);
 
   const handleComplete = (totalSeconds: number, rounds?: number) => {
     playVictory();
@@ -45,7 +45,6 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   };
 
   const handleConfirmExit = () => {
-    releaseWakeLock();
     onExit();
   };
 
@@ -74,9 +73,9 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
           {/* Visual indicator of wake lock */}
           <span
             className={`w-2.5 h-2.5 rounded-full ${
-              isLocked ? 'bg-emerald-400 shadow-[0_0_8px_#22c55e]' : 'bg-zinc-700'
+              effectiveIsLocked ? 'bg-emerald-400 shadow-[0_0_8px_#22c55e]' : 'bg-zinc-700'
             }`}
-            title={isLocked ? 'Pantalla protegida contra bloqueo' : 'Wake lock inactivo'}
+            title={effectiveIsLocked ? 'Pantalla protegida contra bloqueo' : 'Wake lock inactivo'}
           />
         </div>
       </div>
