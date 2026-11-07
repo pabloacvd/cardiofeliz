@@ -67,6 +67,21 @@ create table if not exists public.cf_routines (
 );
 
 -- ============================================================================
+-- COLUMNAS AGREGADAS DESPUÉS DE LA CREACIÓN
+-- (create table if not exists no modifica tablas existentes; ver migrations/)
+-- ============================================================================
+
+-- cf_activities.avg_heart_rate_bpm: pulso medio medido por el Apple Watch (opcional).
+-- Migración equivalente: migrations/cf_activities_avg_heart_rate.sql
+alter table public.cf_activities
+  add column if not exists avg_heart_rate_bpm integer;
+alter table public.cf_activities
+  drop constraint if exists cf_activities_avg_heart_rate_check;
+alter table public.cf_activities
+  add constraint cf_activities_avg_heart_rate_check
+  check (avg_heart_rate_bpm is null or (avg_heart_rate_bpm >= 20 and avg_heart_rate_bpm <= 260));
+
+-- ============================================================================
 -- ÍNDICES
 -- ============================================================================
 

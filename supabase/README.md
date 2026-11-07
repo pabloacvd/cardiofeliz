@@ -28,6 +28,14 @@ El script es idempotente. Con la CLI de Supabase iniciada y el repo vinculado al
 supabase db query --linked -f supabase/schema.sql
 ```
 
+Las migraciones incrementales están en [`migrations/`](./migrations) y también quedan reflejadas en `schema.sql`. Para una base ya creada alcanza con ejecutar la migración nueva, por ejemplo:
+
+```bash
+supabase db query --linked -f supabase/migrations/cf_activities_avg_heart_rate.sql
+```
+
+`cf_activities_avg_heart_rate.sql` agrega `avg_heart_rate_bpm` (pulso medio del Apple Watch, opcional). No requiere cambios en la PWA: ver el encabezado de la migración.
+
 ## Variables de entorno
 
 Creá un archivo `.env` en la raíz (ignorado por git), con los valores de **Project Settings > API**:

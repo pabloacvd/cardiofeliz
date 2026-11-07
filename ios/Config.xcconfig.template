@@ -1,0 +1,16 @@
+// Configuración local de firma, Bundle ID y Supabase para CardioFeliz
+// Copia este archivo a 'Config.xcconfig' y configúralo con tus datos.
+// 'Config.xcconfig' está ignorado por git: nunca lo versiones.
+
+// Tu Apple Development Team ID (10 caracteres, ej: ABC123XYZ).
+// Déjalo vacío si vas a seleccionar firma automática en Xcode con cuenta personal.
+DEVELOPMENT_TEAM =
+
+// Prefijo único para los Bundle Identifiers de la App, el Widget y el Watch (ej: com.miusuario).
+PRODUCT_BUNDLE_PREFIX = com.cardiofeliz
+
+// --- Supabase (mismos valores que VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY de .env) ---
+// En un .xcconfig, '//' empieza un comentario, así que 'https://' se escribe como 'https:/$(SLASH)'
+SLASH = /
+SUPABASE_URL = https:/$(SLASH)tu-proyecto.supabase.co
+SUPABASE_ANON_KEY = tu_anon_key_aqui

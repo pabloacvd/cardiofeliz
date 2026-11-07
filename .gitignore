@@ -25,3 +25,12 @@ node_modules/.vite/
 
 # Playwright MCP artifacts
 .playwright-mcp/
+
+# iOS and Xcode
+ios/*.xcodeproj/
+ios/*.xcworkspace/
+DerivedData/
+xcuserdata/
+*.xcconfig
+.swiftpm/
+.build/
