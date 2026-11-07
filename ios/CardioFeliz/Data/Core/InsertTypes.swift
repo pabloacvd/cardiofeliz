@@ -26,6 +26,7 @@ struct ActivityInsert: Encodable, Equatable {
     var feeling: Int?
     var caloriesKcal: Double?
     var xpEarned: Int
+    var avgHeartRateBpm: Int?
 
     enum CodingKeys: String, CodingKey {
         case id, type, feeling
@@ -40,6 +41,7 @@ struct ActivityInsert: Encodable, Equatable {
         case runLocation = "run_location"
         case caloriesKcal = "calories_kcal"
         case xpEarned = "xp_earned"
+        case avgHeartRateBpm = "avg_heart_rate_bpm"
     }
 
     func encode(to encoder: Encoder) throws {
@@ -58,6 +60,7 @@ struct ActivityInsert: Encodable, Equatable {
         try c.encode(feeling, forKey: .feeling)
         try c.encode(caloriesKcal, forKey: .caloriesKcal)
         try c.encode(xpEarned, forKey: .xpEarned)
+        try c.encode(avgHeartRateBpm, forKey: .avgHeartRateBpm)
     }
 }
 

@@ -21,6 +21,8 @@ final class CachedActivity {
     var caloriesKcal: Double?
     var xpEarned: Int
     var createdAt: Date?
+    /// Añadido después de la primera versión: opcional, así que SwiftData migra el almacén sin pasos extra.
+    var avgHeartRateBpm: Int?
     /// Posición en la cola de subida; nil si ya está sincronizada.
     var pendingOrder: Int?
     /// Id del dueño de la fila local (usuario de la sesión); `ActivityRecord.userId` va en `recordUserId`.
@@ -42,6 +44,7 @@ final class CachedActivity {
         self.caloriesKcal = a.caloriesKcal
         self.xpEarned = a.xpEarned
         self.createdAt = a.createdAt
+        self.avgHeartRateBpm = a.avgHeartRateBpm
         self.pendingOrder = pendingOrder
         self.recordUserId = a.userId
     }
@@ -60,6 +63,7 @@ final class CachedActivity {
         caloriesKcal = a.caloriesKcal
         xpEarned = a.xpEarned
         createdAt = a.createdAt
+        avgHeartRateBpm = a.avgHeartRateBpm
         self.pendingOrder = pendingOrder
         recordUserId = a.userId
     }
@@ -82,7 +86,8 @@ final class CachedActivity {
             feeling: feeling,
             caloriesKcal: caloriesKcal,
             xpEarned: xpEarned,
-            createdAt: createdAt
+            createdAt: createdAt,
+            avgHeartRateBpm: avgHeartRateBpm
         )
     }
 }

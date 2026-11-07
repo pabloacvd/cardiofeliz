@@ -32,6 +32,7 @@ final class SwiftDataCacheTests: XCTestCase {
         full.distanceKm = 5.25
         full.runLocation = .cinta
         full.feeling = 3
+        full.avgHeartRateBpm = 147
         full.createdAt = Date(timeIntervalSince1970: 1_772_620_000)
         let other = makeActivity("a", day: "2026-03-01")
         let third = makeActivity("c", day: "2026-03-02")

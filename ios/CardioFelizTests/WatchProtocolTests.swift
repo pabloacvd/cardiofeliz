@@ -277,6 +277,35 @@ final class WatchCaloriesTests: XCTestCase {
         XCTAssertNil(store.summaries["s0"])
     }
 
+    func testStorePersistsAcrossInstances() throws {
+        let suite = "cf.test.watchsummaries.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let first = WatchSummaryStore(defaults: defaults)
+        first.record(summary("a", kcal: 90, bpm: 133))
+
+        let second = WatchSummaryStore(defaults: defaults)
+        XCTAssertEqual(second.summaries["a"]?.activeCalories, 90)
+        XCTAssertEqual(second.summaries["a"]?.averageHeartRate, 133)
+    }
+
+    func testStoreRevalidatesPersistedValuesAndIgnoresGarbage() throws {
+        let suite = "cf.test.watchsummaries.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let bad = [summary("a", kcal: -5, bpm: 900)]
+        defaults.set(try JSONEncoder().encode(bad), forKey: WatchSummaryStore.defaultsKey)
+        let store = WatchSummaryStore(defaults: defaults)
+        XCTAssertNotNil(store.summaries["a"])
+        XCTAssertNil(store.summaries["a"]?.activeCalories)
+        XCTAssertNil(store.summaries["a"]?.averageHeartRate)
+
+        defaults.set(Data("no es json".utf8), forKey: WatchSummaryStore.defaultsKey)
+        XCTAssertTrue(WatchSummaryStore(defaults: defaults).summaries.isEmpty)
+    }
+
     // MARK: WatchCalories.dayTotal
 
     func testDayTotalNilWithoutAnyMeasurement() {
@@ -307,6 +336,71 @@ final class WatchCaloriesTests: XCTestCase {
         let blocks = [WatchCalories.Block(durationSeconds: 600, sessionId: "a"),
                       WatchCalories.Block(durationSeconds: 1800, sessionId: nil)]
         XCTAssertEqual(WatchCalories.dayTotal(blocks: blocks, summaries: ["a": summary("a", kcal: 100)], weightKg: nil), 100)
+    }
+
+    // MARK: WatchHeartRate.dayAverage
+
+    func testHeartRateAverageIsWeightedByDuration() {
+        // (100 × 600 + 160 × 1800) / 2400 = 145
+        let blocks = [WatchCalories.Block(durationSeconds: 600, sessionId: "a"),
+                      WatchCalories.Block(durationSeconds: 1800, sessionId: "b")]
+        let bpm = WatchHeartRate.dayAverage(
+            blocks: blocks, summaries: ["a": summary("a", kcal: 1, bpm: 100), "b": summary("b", kcal: 1, bpm: 160)]
+        )
+        XCTAssertEqual(bpm, 145)
+    }
+
+    func testHeartRateAverageIgnoresBlocksWithoutMeasurement() {
+        let blocks = [WatchCalories.Block(durationSeconds: 600, sessionId: "a"),
+                      WatchCalories.Block(durationSeconds: 9000, sessionId: nil),
+                      WatchCalories.Block(durationSeconds: 600, sessionId: "c")]
+        let bpm = WatchHeartRate.dayAverage(
+            blocks: blocks, summaries: ["a": summary("a", kcal: 1, bpm: 120), "c": summary("c", kcal: 1, bpm: nil)]
+        )
+        XCTAssertEqual(bpm, 120)
+    }
+
+    func testHeartRateAverageNilWithoutAnyMeasurement() {
+        let blocks = [WatchCalories.Block(durationSeconds: 600, sessionId: "a")]
+        XCTAssertNil(WatchHeartRate.dayAverage(blocks: blocks, summaries: [:]))
+        XCTAssertNil(WatchHeartRate.dayAverage(blocks: blocks, summaries: ["a": summary("a", kcal: 5, bpm: nil)]))
+        XCTAssertNil(WatchHeartRate.dayAverage(blocks: [], summaries: [:]))
+    }
+
+    // MARK: ActivityStore.setMeasuredHealth
+
+    func testSetMeasuredHealthStoresHeartRateAndKeepsCaloriesWhenNil() throws {
+        let store = makeStore()
+        let saved = try store.addActivity(makeDraft(), options: AddActivityOptions(weightKg: 70))
+        let updated = try XCTUnwrap(store.setMeasuredHealth(id: saved.id, kcal: nil, heartRateBpm: 141))
+        XCTAssertEqual(updated.avgHeartRateBpm, 141)
+        XCTAssertEqual(updated.caloriesKcal, saved.caloriesKcal)
+        XCTAssertGreaterThan(store.pendingCount, 0)
+    }
+
+    func testSetMeasuredHealthRejectsHeartRateOutsideServerCheck() throws {
+        let store = makeStore()
+        let saved = try store.addActivity(makeDraft(), options: AddActivityOptions(weightKg: 70))
+        XCTAssertNil(store.setMeasuredHealth(id: saved.id, kcal: nil, heartRateBpm: 19))
+        XCTAssertNil(store.setMeasuredHealth(id: saved.id, kcal: nil, heartRateBpm: 261))
+        XCTAssertNil(store.activities.first?.avgHeartRateBpm)
+    }
+
+    func testSetMeasuredHealthSameValuesDoNotRequeue() throws {
+        let store = makeStore()
+        let saved = try store.addActivity(makeDraft(), options: AddActivityOptions(weightKg: 70))
+        store.setMeasuredHealth(id: saved.id, kcal: 90, heartRateBpm: 130)
+        let pending = store.pendingCount
+        store.setMeasuredHealth(id: saved.id, kcal: 90, heartRateBpm: 130)
+        XCTAssertEqual(store.pendingCount, pending)
+    }
+
+    func testEditingActivityKeepsHeartRate() throws {
+        let store = makeStore()
+        let saved = try store.addActivity(makeDraft(), options: AddActivityOptions(weightKg: 70))
+        store.setMeasuredHealth(id: saved.id, kcal: nil, heartRateBpm: 150)
+        let edited = try XCTUnwrap(store.updateActivity(id: saved.id, patch: { $0.feeling = 4 }))
+        XCTAssertEqual(edited.avgHeartRateBpm, 150)
     }
 
     // MARK: ActivityStore.setMeasuredCalories
@@ -393,6 +487,46 @@ final class WatchCaloriesTests: XCTestCase {
 
         XCTAssertEqual(store.activities.first?.caloriesKcal, 130)
         XCTAssertNotEqual(estimated, 130)
+    }
+
+    func testViewModelStoresWeightedHeartRateOnSavedDay() throws {
+        let vm = try makeViewModel()
+        let store = makeStore()
+        let dia = try dayWithTwoBlocks()
+        let today = "2026-03-04"
+        vm.handleBlockCompleted(dia: dia, bloque: dia.bloques[0], totalSeconds: 600, rounds: nil, today: today,
+                                activityStore: store, weightKg: 70, watchSessionId: "s1")
+        vm.handleBlockCompleted(dia: dia, bloque: dia.bloques[1], totalSeconds: 1800, rounds: nil, today: today,
+                                activityStore: store, weightKg: 70, watchSessionId: "s2")
+        vm.applyWatchSummaries(["s1": summary("s1", kcal: 60, bpm: 100), "s2": summary("s2", kcal: 70, bpm: 160)],
+                               activityStore: store, weightKg: 70)
+        XCTAssertEqual(store.activities.first?.avgHeartRateBpm, 145)
+    }
+
+    func testSavedDayAndSummarySurviveAppRestart() throws {
+        let suite = "cf.test.savedday.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        struct Provider: RoutineProvider {
+            let data: RutinaData
+            func loadRoutine() throws -> RutinaData { data }
+        }
+        let provider = Provider(data: try Fixtures.defaultRoutine())
+        let store = makeStore()
+        let dia = try dayWithTwoBlocks()
+
+        let before = WorkoutWorkflowViewModel(routineProvider: provider, defaults: defaults)
+        before.handleBlockCompleted(dia: dia, bloque: dia.bloques[0], totalSeconds: 600, rounds: nil, today: "2026-03-04",
+                                    activityStore: store, weightKg: 70, watchSessionId: "s1")
+        before.handleBlockCompleted(dia: dia, bloque: dia.bloques[1], totalSeconds: 600, rounds: nil, today: "2026-03-04",
+                                    activityStore: store, weightKg: 70, watchSessionId: "s2")
+
+        // La app se reinicia; el resumen llega después y se aplica con un view model nuevo.
+        let after = WorkoutWorkflowViewModel(routineProvider: provider, defaults: defaults)
+        after.applyWatchSummaries(["s1": summary("s1", kcal: 60, bpm: 120), "s2": summary("s2", kcal: 70, bpm: 140)],
+                                  activityStore: store, weightKg: 70)
+        XCTAssertEqual(store.activities.first?.caloriesKcal, 130)
+        XCTAssertEqual(store.activities.first?.avgHeartRateBpm, 130)
     }
 
     func testViewModelKeepsEstimateWithoutWatch() throws {

@@ -4,7 +4,7 @@ import SwiftUI
 struct RootView: View {
     @ObservedObject var env: AppEnvironment
     @ObservedObject var session: SessionManager
-    @StateObject private var workflow = WorkoutWorkflowViewModel()
+    @StateObject private var workflow = WorkoutWorkflowViewModel(defaults: .standard)
 
     #if DEBUG
     @State private var isDebugDemoMode = true

@@ -28,6 +28,8 @@ struct ActivityRecord: Hashable, Identifiable, Sendable {
     var caloriesKcal: Double?
     var xpEarned: Int
     var createdAt: Date?
+    /// Pulso medio (ppm) medido por el Apple Watch; nil si no hubo medición o la actividad viene de la PWA.
+    var avgHeartRateBpm: Int? = nil
 }
 
 /// Equivale a `ActivityDraft` de `src/utils/workoutDay.ts`: lo que aporta la UI al terminar un

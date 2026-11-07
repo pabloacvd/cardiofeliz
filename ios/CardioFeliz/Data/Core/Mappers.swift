@@ -20,7 +20,8 @@ enum Mappers {
             feeling: row.feeling,
             caloriesKcal: row.caloriesKcal?.value,
             xpEarned: row.xpEarned,
-            createdAt: SupabaseDate.parse(row.createdAt)
+            createdAt: SupabaseDate.parse(row.createdAt),
+            avgHeartRateBpm: row.avgHeartRateBpm
         )
     }
 
@@ -40,7 +41,8 @@ enum Mappers {
             runLocation: a.runLocation,
             feeling: a.feeling,
             caloriesKcal: a.caloriesKcal,
-            xpEarned: a.xpEarned
+            xpEarned: a.xpEarned,
+            avgHeartRateBpm: a.avgHeartRateBpm
         )
     }
 

@@ -4,26 +4,38 @@ import Combine
 // Resúmenes de Salud que el Apple Watch envía al terminar cada sesión, y su uso para las calorías del día.
 //
 // Las calorías medidas por el Watch (energía activa de HealthKit) reemplazan a la estimación por MET.
-// La frecuencia cardíaca media solo se conserva en memoria: el esquema de Supabase no tiene columna para
-// ella y no se inventa una (ver `supabase/schema.sql`).
+// La frecuencia cardíaca media se guarda en `cf_activities.avg_heart_rate_bpm` (ver
+// `supabase/migrations/cf_activities_avg_heart_rate.sql`).
 
-/// Resúmenes recibidos del Watch, por `sessionId`. En memoria: la sesión de progreso del día
-/// (`WorkoutWorkflowViewModel.blockProgress`) tampoco se persiste, así que no hay a qué aplicarlos tras
-/// un reinicio de la app.
+/// Resúmenes recibidos del Watch, por `sessionId`. Se guardan en `UserDefaults` para no perder las
+/// calorías y el pulso medidos si la app se reinicia entre el fin de la sesión y la llegada del resumen.
+/// Sin `defaults` (los tests) viven solo en memoria.
 @MainActor
 final class WatchSummaryStore: ObservableObject {
-    static let shared = WatchSummaryStore()
+    static let shared = WatchSummaryStore(defaults: .standard)
+    static let defaultsKey = "cf.watch.summaries.v1"
 
     @Published private(set) var summaries: [String: WatchSummary] = [:]
 
     private let limit: Int
+    private let defaults: UserDefaults?
 
-    init(limit: Int = 50) {
+    init(limit: Int = 50, defaults: UserDefaults? = nil) {
         self.limit = limit
+        self.defaults = defaults
+        if let data = defaults?.data(forKey: Self.defaultsKey),
+           let stored = try? JSONDecoder().decode([WatchSummary].self, from: data) {
+            // Se vuelve a validar al cargar: el valor guardado pudo corromperse.
+            for summary in stored { record(summary, persist: false) }
+        }
     }
 
     /// Valores fuera de rango (datos corruptos o manipulados) se descartan en vez de guardarse.
     func record(_ summary: WatchSummary) {
+        record(summary, persist: true)
+    }
+
+    private func record(_ summary: WatchSummary, persist: Bool) {
         guard !summary.sessionId.isEmpty else { return }
         var clean = summary
         clean.activeCalories = Self.valid(summary.activeCalories, in: 0...50_000)
@@ -34,6 +46,14 @@ final class WatchSummaryStore: ObservableObject {
             let oldest = summaries.values.sorted { $0.endedAt < $1.endedAt }.prefix(summaries.count - limit)
             for item in oldest { summaries.removeValue(forKey: item.sessionId) }
         }
+        if persist { save() }
+    }
+
+    private func save() {
+        guard let defaults else { return }
+        if let data = try? JSONEncoder().encode(Array(summaries.values)) {
+            defaults.set(data, forKey: Self.defaultsKey)
+        }
     }
 
     private static func valid(_ value: Double?, in range: ClosedRange<Double>) -> Double? {
@@ -42,8 +62,26 @@ final class WatchSummaryStore: ObservableObject {
     }
 }
 
+enum WatchHeartRate {
+    /// Pulso medio del día: promedio de los bloques con medición, ponderado por su duración. nil si ningún
+    /// bloque tiene pulso. Los bloques sin Watch no cuentan (no se inventa un valor para ellos).
+    static func dayAverage(blocks: [WatchCalories.Block], summaries: [String: WatchSummary]) -> Int? {
+        var weighted = 0.0
+        var seconds = 0.0
+        for block in blocks {
+            guard let id = block.sessionId, let bpm = summaries[id]?.averageHeartRate else { continue }
+            let weight = Double(max(1, block.durationSeconds))
+            weighted += bpm * weight
+            seconds += weight
+        }
+        guard seconds > 0 else { return nil }
+        let average = Int((weighted / seconds).rounded())
+        return ActivityValidation.heartRateRange.contains(average) ? average : nil
+    }
+}
+
 enum WatchCalories {
-    struct Block: Equatable {
+    struct Block: Equatable, Codable {
         var durationSeconds: Int
         /// Sesión del Watch que cubrió este bloque; nil si el Watch no participó.
         var sessionId: String?

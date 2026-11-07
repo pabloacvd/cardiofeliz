@@ -37,6 +37,9 @@ extension ActivityRecord {
 /// Validación local previa a guardar. Refleja los `check` de `supabase/schema.sql`: una fila que el
 /// servidor rechazaría quedaría atascada para siempre en la cola de subida, así que se corta aquí.
 enum ActivityValidation {
+    /// Rango del `check` de `cf_activities.avg_heart_rate_bpm`.
+    static let heartRateRange = 20...260
+
     static func validate(_ d: ActivityDraft) throws {
         guard isValidDay(d.occurredOn),
               d.durationSeconds >= 0,

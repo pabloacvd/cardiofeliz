@@ -41,6 +41,27 @@ final class MapperTests: XCTestCase {
         XCTAssertEqual(a.blocksCompleted, 3)
     }
 
+    func testActivityRowHeartRateIsOptionalAndMapped() throws {
+        // Fila anterior a la migración: sin la clave.
+        let old = try decode(ActivityRow.self, """
+        {"id":"a1","user_id":"u1","type":"run","occurred_on":"2026-03-04","started_at":null,"duration_seconds":60,
+         "day_id":null,"blocks_completed":null,"rounds_total":null,"distance_km":null,"run_location":null,
+         "feeling":null,"calories_kcal":null,"xp_earned":0,"created_at":"2026-03-04T11:00:00Z"}
+        """)
+        XCTAssertNil(Mappers.activity(old).avgHeartRateBpm)
+
+        let withBpm = try decode(ActivityRow.self, """
+        {"id":"a1","user_id":"u1","type":"workout_day","occurred_on":"2026-03-04","started_at":null,"duration_seconds":60,
+         "day_id":"d","blocks_completed":2,"rounds_total":null,"distance_km":null,"run_location":null,
+         "feeling":null,"calories_kcal":120,"xp_earned":10,"created_at":"2026-03-04T11:00:00Z","avg_heart_rate_bpm":143}
+        """)
+        XCTAssertEqual(Mappers.activity(withBpm).avgHeartRateBpm, 143)
+
+        var record = makeActivity("a1")
+        record.avgHeartRateBpm = 143
+        XCTAssertEqual(try json(Mappers.insert(record, userId: "u1"))["avg_heart_rate_bpm"] as? Int, 143)
+    }
+
     func testActivityInsertEncodesExplicitNullsAndSnakeCase() throws {
         // Igual que toDbActivity: los opcionales vacíos viajan como null para poder BORRAR valores al editar.
         let a = ActivityRecord(id: "a1", userId: nil, type: .activeRest, occurredOn: "2026-03-04", startedAt: nil,
@@ -52,11 +73,11 @@ final class MapperTests: XCTestCase {
         XCTAssertEqual(obj["occurred_on"] as? String, "2026-03-04")
         XCTAssertEqual(obj["duration_seconds"] as? Int, 300)
         XCTAssertEqual(obj["xp_earned"] as? Int, 5)
-        for key in ["started_at", "day_id", "blocks_completed", "rounds_total", "distance_km", "run_location", "feeling", "calories_kcal"] {
+        for key in ["started_at", "day_id", "blocks_completed", "rounds_total", "distance_km", "run_location", "feeling", "calories_kcal", "avg_heart_rate_bpm"] {
             XCTAssertTrue(obj[key] is NSNull, "\(key) debe enviarse como null")
         }
         XCTAssertNil(obj["created_at"], "created_at lo asigna el servidor")
-        XCTAssertEqual(Set(obj.keys).count, 14)
+        XCTAssertEqual(Set(obj.keys).count, 15)
     }
 
     func testActivityInsertKeepsOwnUserIdAndFormatsStartedAt() throws {

@@ -54,12 +54,18 @@ final class WorkoutWorkflowViewModel: ObservableObject {
     @Published var destination: WorkoutDestination = .home
     @Published var completedModalData: WorkoutCompleteModalData?
     @Published private(set) var blockProgress: [String: BlockProgressEntry] = [:]
-    /// Día ya guardado como actividad: sirve para ajustar sus calorías cuando llega el resumen del Watch.
+    /// Día ya guardado como actividad: sirve para ajustar sus calorías y su pulso cuando llega el resumen del
+    /// Watch. Se persiste (con `defaults`) para que un reinicio de la app no deje el resumen sin actividad.
     private var savedDays: [String: SavedDay] = [:]
+    private let defaults: UserDefaults?
+    static let savedDaysKey = "cf.watch.savedDays.v1"
+    private static let savedDaysLimit = 10
+    private static let savedDaysMaxAge: TimeInterval = 48 * 3600
 
-    private struct SavedDay {
+    private struct SavedDay: Codable {
         var activityId: String
         var blocks: [WatchCalories.Block]
+        var savedAt: Date
     }
     @Published var isIdleTimerDisabled: Bool = false {
         didSet {
@@ -71,8 +77,14 @@ final class WorkoutWorkflowViewModel: ObservableObject {
 
     private let routineProvider: RoutineProvider
 
-    init(routineProvider: RoutineProvider = BundledRoutineProvider()) {
+    init(routineProvider: RoutineProvider = BundledRoutineProvider(), defaults: UserDefaults? = nil) {
         self.routineProvider = routineProvider
+        self.defaults = defaults
+        if let data = defaults?.data(forKey: Self.savedDaysKey),
+           let stored = try? JSONDecoder().decode([String: SavedDay].self, from: data) {
+            // El resumen llega a los pocos minutos de terminar; un día más viejo ya no espera ninguno.
+            self.savedDays = stored.filter { Date().timeIntervalSince($0.value.savedAt) < Self.savedDaysMaxAge }
+        }
         do {
             self.rutina = try routineProvider.loadRoutine()
         } catch {
@@ -187,8 +199,10 @@ final class WorkoutWorkflowViewModel: ObservableObject {
                     let saved = try activityStore.addActivity(draft, options: AddActivityOptions(weightKg: weightKg))
                     savedDays[dia.id] = SavedDay(
                         activityId: saved.id,
-                        blocks: WorkoutDayProgress.watchBlocks(dia: dia, progress: blockProgress)
+                        blocks: WorkoutDayProgress.watchBlocks(dia: dia, progress: blockProgress),
+                        savedAt: Date()
                     )
+                    persistSavedDays()
                     let afterCtx = GameOutcome.withActivity(ctx: beforeCtx, activity: saved)
                     let outcome = GameOutcome.logOutcome(before: beforeCtx, after: afterCtx)
                     dayResult = outcome
@@ -218,16 +232,27 @@ final class WorkoutWorkflowViewModel: ObservableObject {
         )
     }
 
-    /// Sustituye la estimación por MET por las calorías medidas por el Watch en los días ya guardados.
+    /// Sustituye la estimación por MET por las calorías medidas por el Watch y guarda el pulso medio en los días ya guardados.
     /// El resumen de la última sesión llega después de que el día se guarda, así que se llama también cada
     /// vez que entra un resumen nuevo.
     func applyWatchSummaries(_ summaries: [String: WatchSummary], activityStore: ActivityStore?, weightKg: Double?) {
         guard let activityStore, !summaries.isEmpty else { return }
         for (_, saved) in savedDays {
-            guard let kcal = WatchCalories.dayTotal(blocks: saved.blocks, summaries: summaries, weightKg: weightKg) else {
-                continue
-            }
-            activityStore.setMeasuredCalories(id: saved.activityId, kcal: kcal)
+            let kcal = WatchCalories.dayTotal(blocks: saved.blocks, summaries: summaries, weightKg: weightKg)
+            let bpm = WatchHeartRate.dayAverage(blocks: saved.blocks, summaries: summaries)
+            guard kcal != nil || bpm != nil else { continue }
+            activityStore.setMeasuredHealth(id: saved.activityId, kcal: kcal, heartRateBpm: bpm)
+        }
+    }
+
+    private func persistSavedDays() {
+        guard let defaults else { return }
+        if savedDays.count > Self.savedDaysLimit {
+            let oldest = savedDays.sorted { $0.value.savedAt < $1.value.savedAt }.prefix(savedDays.count - Self.savedDaysLimit)
+            for (key, _) in oldest { savedDays.removeValue(forKey: key) }
+        }
+        if let data = try? JSONEncoder().encode(savedDays) {
+            defaults.set(data, forKey: Self.savedDaysKey)
         }
     }
 

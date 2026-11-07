@@ -85,6 +85,8 @@ public struct ActivityRow: Codable, Hashable, Identifiable {
     public var caloriesKcal: FlexibleDouble?
     public var xpEarned: Int
     public var createdAt: String
+    /// Pulso medio del Apple Watch (`avg_heart_rate_bpm`); ausente en filas anteriores a la migración.
+    public var avgHeartRateBpm: Int?
 
     enum CodingKeys: String, CodingKey {
         case id, type, feeling
@@ -100,6 +102,7 @@ public struct ActivityRow: Codable, Hashable, Identifiable {
         case caloriesKcal = "calories_kcal"
         case xpEarned = "xp_earned"
         case createdAt = "created_at"
+        case avgHeartRateBpm = "avg_heart_rate_bpm"
     }
 }
 

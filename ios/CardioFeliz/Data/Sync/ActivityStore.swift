@@ -240,11 +240,22 @@ final class ActivityStore: ObservableObject {
     /// estimación por MET. Devuelve nil si el id no existe o el valor no es válido.
     @discardableResult
     func setMeasuredCalories(id: String, kcal: Double) -> ActivityRecord? {
-        guard kcal.isFinite, kcal >= 0,
-              let current = cache.activities.first(where: { $0.id == id }) else { return nil }
-        guard current.caloriesKcal != kcal else { return current }
+        setMeasuredHealth(id: id, kcal: kcal, heartRateBpm: nil)
+    }
+
+    /// Fija las calorías y/o el pulso medio medidos por el Apple Watch. Un parámetro nil deja ese valor como
+    /// estaba. Valores no válidos (calorías negativas o no finitas, pulso fuera de 20 a 260, que es lo que
+    /// admite el `check` del servidor) devuelven nil sin tocar nada: una fila que el servidor rechazaría
+    /// quedaría atascada en la cola de subida. Devuelve nil también si el id no existe.
+    @discardableResult
+    func setMeasuredHealth(id: String, kcal: Double?, heartRateBpm: Int?) -> ActivityRecord? {
+        if let kcal, !(kcal.isFinite && kcal >= 0) { return nil }
+        if let heartRateBpm, !ActivityValidation.heartRateRange.contains(heartRateBpm) { return nil }
+        guard let current = cache.activities.first(where: { $0.id == id }) else { return nil }
         var updated = current
-        updated.caloriesKcal = kcal
+        if let kcal { updated.caloriesKcal = kcal }
+        if let heartRateBpm { updated.avgHeartRateBpm = heartRateBpm }
+        guard updated != current else { return current }
         commit {
             $0.activities = $0.activities.map { $0.id == id ? updated : $0 }
             if !$0.pending.contains(id) { $0.pending.append(id) }
