@@ -1,29 +1,41 @@
 import XCTest
-@testable import CardioFeliz
 
 @MainActor
 final class VacationsStoreTests: XCTestCase {
     private final class MockVacationsRemote: VacationsRemote, @unchecked Sendable {
-        var remoteVacations: [VacationPeriod] = []
-        var pushed: [VacationPeriod] = []
-        var deletedIds: [String] = []
+        // Las subidas se lanzan en tareas concurrentes: el estado se protege con un lock.
+        private let lock = NSLock()
+        private var _remoteVacations: [VacationPeriod] = []
+        private var _pushed: [VacationPeriod] = []
+        private var _deletedIds: [String] = []
+
+        var remoteVacations: [VacationPeriod] {
+            get { lock.withLock { _remoteVacations } }
+            set { lock.withLock { _remoteVacations = newValue } }
+        }
+        var pushed: [VacationPeriod] { lock.withLock { _pushed } }
+        var deletedIds: [String] { lock.withLock { _deletedIds } }
 
         func fetchAll() async throws -> [VacationPeriod] {
             remoteVacations
         }
 
         func push(_ vacation: VacationPeriod, userId: String) async throws {
-            pushed.append(vacation)
-            if let idx = remoteVacations.firstIndex(where: { $0.id == vacation.id }) {
-                remoteVacations[idx] = vacation
-            } else {
-                remoteVacations.insert(vacation, at: 0)
+            lock.withLock {
+                _pushed.append(vacation)
+                if let idx = _remoteVacations.firstIndex(where: { $0.id == vacation.id }) {
+                    _remoteVacations[idx] = vacation
+                } else {
+                    _remoteVacations.insert(vacation, at: 0)
+                }
             }
         }
 
         func delete(id: String) async throws {
-            deletedIds.append(id)
-            remoteVacations.removeAll { $0.id == id }
+            lock.withLock {
+                _deletedIds.append(id)
+                _remoteVacations.removeAll { $0.id == id }
+            }
         }
     }
 

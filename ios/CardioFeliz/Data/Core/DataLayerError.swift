@@ -15,6 +15,8 @@ enum DataLayerError: Error, Equatable {
     case network
     case server(code: String?)
     case decoding
+    /// La rutina guardada en la nube no se puede leer con esta versión (p. ej. un tipo de bloque nuevo).
+    case incompatibleRoutine
     case unknown
 
     /// Mensaje apto para mostrar al usuario. Sin detalles técnicos.
@@ -25,6 +27,8 @@ enum DataLayerError: Error, Equatable {
         case .invalidCredentials: return "Usuario o contraseña incorrectos."
         case .invalidInput: return "Los datos introducidos no son válidos."
         case .network: return "No se pudo conectar. Revisa tu conexión e inténtalo de nuevo."
+        case .incompatibleRoutine:
+            return "Tu rutina de la nube tiene un tipo de bloque que esta versión de la app no reconoce, así que se usa la rutina de este dispositivo. Si guardas cambios aquí, reemplazarán la rutina de la nube. Actualiza la app antes de editarla."
         case .server, .decoding, .unknown: return "Ocurrió un problema. Inténtalo de nuevo más tarde."
         }
     }

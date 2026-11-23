@@ -236,7 +236,7 @@ struct RoutineEditorView: View {
         case .synced: return routineStore.isCustom ? "Personalizada" : "Por defecto"
         case .syncing: return "Sincronizando…"
         case .pending: return "Pendiente de subir"
-        case .error: return "Error de sincronización"
+        case .error: return routineStore.syncProblem == nil ? "Error de sincronización" : "Rutina de la nube incompatible"
         }
     }
 

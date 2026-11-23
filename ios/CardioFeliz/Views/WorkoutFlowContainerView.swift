@@ -41,7 +41,8 @@ struct WorkoutFlowContainerView: View {
                         weightStore: weightStore,
                         vacationsStore: vacationsStore,
                         achievementsStore: achievementsStore,
-                        session: session
+                        session: session,
+                        routineProblem: routineStore.syncProblem
                     )
                 case .dayDetail(let dia):
                     DayDetailView(

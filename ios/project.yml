@@ -1,6 +1,9 @@
 name: CardioFeliz
 options:
   bundleIdPrefix: com.cardiofeliz
+  # Versiones exactas de las dependencias indirectas de supabase-swift: Package.resolved se versiona
+  # en ios/ (el .xcodeproj no, porque se regenera) y se copia donde Xcode lo lee.
+  postGenCommand: mkdir -p CardioFeliz.xcodeproj/project.xcworkspace/xcshareddata/swiftpm && cp Package.resolved CardioFeliz.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
   createIntermediateGroups: true
   deploymentTarget:
     iOS: "17.0"

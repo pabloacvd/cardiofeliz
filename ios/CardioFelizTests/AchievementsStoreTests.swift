@@ -1,19 +1,28 @@
 import XCTest
-@testable import CardioFeliz
 
 @MainActor
 final class AchievementsStoreTests: XCTestCase {
     private final class MockAchievementsRemote: AchievementsRemote, @unchecked Sendable {
-        var remoteUnlocks: [AchievementUnlock] = []
-        var pushed: [[AchievementUnlock]] = []
+        // `claimNew` lanza una subida por llamada y se ejecutan en paralelo: el estado se protege con un lock.
+        private let lock = NSLock()
+        private var _remoteUnlocks: [AchievementUnlock] = []
+        private var _pushed: [[AchievementUnlock]] = []
+
+        var remoteUnlocks: [AchievementUnlock] {
+            get { lock.withLock { _remoteUnlocks } }
+            set { lock.withLock { _remoteUnlocks = newValue } }
+        }
+        var pushed: [[AchievementUnlock]] { lock.withLock { _pushed } }
 
         func fetchAll() async throws -> [AchievementUnlock] {
             remoteUnlocks
         }
 
         func push(_ items: [AchievementUnlock], userId: String) async throws {
-            pushed.append(items)
-            remoteUnlocks.append(contentsOf: items)
+            lock.withLock {
+                _pushed.append(items)
+                _remoteUnlocks.append(contentsOf: items)
+            }
         }
     }
 

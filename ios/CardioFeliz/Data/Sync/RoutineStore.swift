@@ -17,6 +17,8 @@ final class RoutineStore: ObservableObject, RoutineProvider {
     @Published private(set) var isCustom: Bool
     @Published private(set) var syncStatus: RoutineSyncStatus
     @Published private(set) var isLoaded: Bool = false
+    /// Problema que el usuario debe conocer (hoy: rutina de la nube incompatible). nil si no hay.
+    @Published private(set) var syncProblem: String?
 
     private let userId: String
     private let displayName: String
@@ -116,6 +118,7 @@ final class RoutineStore: ObservableObject, RoutineProvider {
         defer { isSyncing = false }
 
         syncStatus = .syncing
+        syncProblem = nil
 
         do {
             // 1. Procesar borrado pendiente
@@ -168,6 +171,9 @@ final class RoutineStore: ObservableObject, RoutineProvider {
             syncStatus = cache.pendingAction != nil ? .pending : .synced
         } catch {
             AppLog.sync.error("routineSync failed: \(ErrorSummary.describe(error), privacy: .public)")
+            if let known = error as? DataLayerError, known == .incompatibleRoutine {
+                syncProblem = known.userMessage
+            }
             syncStatus = cache.pendingAction != nil ? .pending : .error
         }
 

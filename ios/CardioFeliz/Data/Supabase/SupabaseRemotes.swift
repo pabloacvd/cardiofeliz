@@ -175,15 +175,21 @@ struct SupabaseRoutineRemote: RoutineRemote {
     }
 
     func fetch(userId: String) async throws -> RemoteRoutine? {
-        try await mapped {
-            let payload: Payload? = try await client
-                .from("cf_routines")
-                .select("data, updated_at")
-                .eq("user_id", value: userId)
-                .maybeSingle()
-                .execute()
-                .value
-            return payload.map { Mappers.routine(data: $0.data, updatedAt: $0.updatedAt) }
+        do {
+            return try await mapped {
+                let payload: Payload? = try await client
+                    .from("cf_routines")
+                    .select("data, updated_at")
+                    .eq("user_id", value: userId)
+                    .maybeSingle()
+                    .execute()
+                    .value
+                return payload.map { Mappers.routine(data: $0.data, updatedAt: $0.updatedAt) }
+            }
+        } catch DataLayerError.decoding {
+            // Una fila que llega pero no se puede leer (p. ej. un `tipo` de bloque que esta versión no conoce)
+            // no es un fallo de red: se avisa con un mensaje propio y se conserva la rutina local.
+            throw DataLayerError.incompatibleRoutine
         }
     }
 

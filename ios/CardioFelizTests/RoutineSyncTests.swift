@@ -5,12 +5,17 @@ actor FakeRoutineRemote: RoutineRemote {
     var failPush = false
     var failFetch = false
     var failDelete = false
+    var fetchError: DataLayerError = .network
     var pushCallCount = 0
     var deleteCallCount = 0
     var fetchCallCount = 0
 
     func setStored(_ routine: RemoteRoutine?) {
         self.stored = routine
+    }
+
+    func setFetchError(_ error: DataLayerError) {
+        fetchError = error
     }
 
     func setFailing(push: Bool? = nil, fetch: Bool? = nil, delete: Bool? = nil) {
@@ -21,7 +26,7 @@ actor FakeRoutineRemote: RoutineRemote {
 
     func fetch(userId: String) async throws -> RemoteRoutine? {
         fetchCallCount += 1
-        if failFetch { throw DataLayerError.network }
+        if failFetch { throw fetchError }
         return stored
     }
 
@@ -118,6 +123,32 @@ final class RoutineSyncTests: XCTestCase {
 
         let deleted = await remote.stored
         XCTAssertNil(deleted)
+    }
+
+    @MainActor
+    func testIncompatibleCloudRoutineShowsProblemAndKeepsLocalRoutine() async throws {
+        let storage = InMemoryKeyValueStorage()
+        let remote = FakeRoutineRemote()
+        await remote.setFailing(fetch: true)
+        await remote.setFetchError(.incompatibleRoutine)
+        let store = RoutineStore(userId: "u1", displayName: "Tester", remote: remote, storage: storage)
+        try await store.saveRoutine(makeRoutine(goal: "Local"))
+        await remote.setFailing(push: true)   // el guardado queda local; luego se reintenta la lectura
+
+        await store.sync()
+        XCTAssertEqual(store.rutina.objetivo, "Local", "Se conserva la rutina del dispositivo")
+        XCTAssertEqual(store.syncProblem, DataLayerError.incompatibleRoutine.userMessage)
+        XCTAssertTrue(store.syncProblem?.contains("tipo de bloque") == true)
+
+        // Un fallo de red común no muestra ese mensaje.
+        await remote.setFetchError(.network)
+        await store.sync()
+        XCTAssertNil(store.syncProblem)
+
+        // Y si la lectura vuelve a funcionar, tampoco.
+        await remote.setFailing(push: false, fetch: false)
+        await store.sync()
+        XCTAssertNil(store.syncProblem)
     }
 
     @MainActor

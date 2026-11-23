@@ -7,7 +7,12 @@ struct RootView: View {
     @StateObject private var workflow = WorkoutWorkflowViewModel(defaults: .standard)
 
     #if DEBUG
-    @State private var isDebugDemoMode = true
+    // Apagado por defecto: la app real arranca en el login. El modo demo se activa a propósito desde
+    // las pantallas de login o "sin configurar".
+    @State private var isDebugDemoMode = false
+    // Los stores demo se crean una sola vez. Si `body` los recreara en cada evaluación, cada store nuevo
+    // emitiría su rutina, `workflow` cambiaría y `body` volvería a evaluarse: un bucle infinito.
+    @StateObject private var demo = DebugDemoStores()
     #endif
 
     init(env: AppEnvironment) {
@@ -20,11 +25,11 @@ struct RootView: View {
         if isDebugDemoMode {
             WorkoutFlowContainerView(
                 workflow: workflow,
-                activityStore: makeDebugActivityStore(),
-                weightStore: makeDebugWeightStore(),
-                routineStore: makeDebugRoutineStore(),
-                vacationsStore: makeDebugVacationsStore(),
-                achievementsStore: makeDebugAchievementsStore(),
+                activityStore: demo.activityStore,
+                weightStore: demo.weightStore,
+                routineStore: demo.routineStore,
+                vacationsStore: demo.vacationsStore,
+                achievementsStore: demo.achievementsStore,
                 session: session
             )
         } else {
@@ -73,7 +78,18 @@ struct RootView: View {
         }
     }
 
-    #if DEBUG
+}
+
+#if DEBUG
+/// Stores de demostración con datos simulados (sin red). Se crean una vez por `RootView`.
+@MainActor
+final class DebugDemoStores: ObservableObject {
+    lazy var activityStore = makeDebugActivityStore()
+    lazy var weightStore = makeDebugWeightStore()
+    lazy var routineStore = makeDebugRoutineStore()
+    lazy var vacationsStore = makeDebugVacationsStore()
+    lazy var achievementsStore = makeDebugAchievementsStore()
+
     private func makeDebugActivityStore() -> ActivityStore {
         final class MockActivitiesRemote: ActivitiesRemote, @unchecked Sendable {
             func fetchAll() async throws -> [ActivityRecord] { [] }
@@ -141,5 +157,5 @@ struct RootView: View {
             storage: InMemoryKeyValueStorage()
         )
     }
-    #endif
 }
+#endif

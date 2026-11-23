@@ -228,10 +228,10 @@ Recomendación del plan: empezar con la cuenta gratuita para el prototipo. Si la
 
 *Preguntas abiertas:*
 1. ~~Orquestadores locales de perfil (peso), logros, vacaciones y rutina:~~ **Resuelto para peso en la Sub-tarea 4**: implementado `ProfileWeightStore` local-first con cache `UserDefaults`/`KeyValueStorage` y sincronización asíncrona con `ProfileRemote`. Logros y vacaciones quedan para la sub-tarea 8; rutina remota para la sub-tarea 7.
-2. La rutina remota se decodifica con el decoder tolerante de `RutinaData`; si el JSON de `cf_routines.data` trajera un `tipo` de bloque desconocido, `fetch` lanzaría `DataLayerError.decoding`. ¿Se prefiere ignorar el bloque o mostrar un error? (afecta a la sub-tarea 7).
+2. ~~Tipo de bloque desconocido en `cf_routines.data`~~ **Resuelto (2026-11-07): se muestra un error.** `fetch` lanza `DataLayerError.incompatibleRoutine`; `RoutineStore.syncProblem` guarda el mensaje ("Tu rutina de la nube tiene un tipo de bloque que esta versión de la app no reconoce… Actualiza la app antes de editarla"), `HomeView` lo muestra en un banner y el editor lo indica en la etiqueta de sincronización. La rutina local se conserva. Un fallo de red común no activa ese mensaje.
 3. Actualizaciones de `ActivityStore.activities` ante cambios de usuario con la app abierta: hoy el store se recrea. Si la sub-tarea 4 necesita observar un único objeto estable, habría que envolver el store en un contenedor.
-4. Cierre de sesión con cola pendiente: la cache se conserva por usuario, pero lo pendiente no se sube hasta que ese usuario vuelva a entrar. ¿Se avisa antes de cerrar sesión si hay cambios sin subir? (aún no hay UI para eso).
-5. `Package.resolved` no se versiona (está dentro del `.xcodeproj` ignorado). ¿Se quiere versionar un `Package.resolved` propio para fijar también las dependencias transitivas?
+4. ~~Cierre de sesión con cola pendiente~~ **Resuelto (2026-11-07): se avisa.** Con `pendingCount > 0`, el botón de cerrar sesión de Home y el de Analíticas piden confirmación (`SignOutWarning`), explicando que lo pendiente queda en el dispositivo y se sube al volver a entrar con la misma cuenta.
+5. ~~`Package.resolved`~~ **Resuelto (2026-11-07): se versiona** en `ios/Package.resolved`. `project.yml` tiene un `postGenCommand` que lo copia a `CardioFeliz.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/` cada vez que se corre `xcodegen generate`, así las dependencias indirectas quedan fijas aunque el `.xcodeproj` se regenere. Al actualizar una dependencia: borrar esa copia, resolver en Xcode y copiar el resultado de vuelta a `ios/Package.resolved`.
 
 *Verificación:* `xcodegen generate` OK. `xcodebuild test` (esquema CardioFeliz, iPhone 17, simulador `3A89B6A7-74FB-41CF-A856-09700149C780`) → **188 tests, 0 fallos** (101 de la sub-tarea 2 + 87 nuevos: ActivityStoreTests 23, SupabaseDateTests 11, SessionManagerTests 9, ActivitySyncMergeTests 8, MapperTests 8, SupabaseConfigTests 7, PaginationTests 6, SwiftDataCacheTests 6, CredentialsTests 4, ActivityValidationTests 3, ErrorHandlingTests 2). Compilación limpia (`clean build`) de CardioFeliz, CardioFelizWidget (iOS Simulator) y CardioFelizWatch (watchOS Simulator) sin warnings ni errores; la línea base de la sub-tarea 2 tampoco tenía warnings. La app lanzada en el simulador sin credenciales muestra el estado "Sin configurar" y registra el motivo, sin crash ni red. **No probado contra Supabase real**: ver `ios/DATA-LAYER-MANUAL-TESTS.md`.
 
@@ -279,7 +279,7 @@ Recomendación del plan: empezar con la cuenta gratuita para el prototipo. Si la
 - Los temporizadores específicos (`EmomTimerView`, `TabataTimerView`, etc.) instancian `TimerManager(plan:)` a partir de `WorkoutPlan(bloque:)`.
 - `TimerManager` ya inicia y actualiza `Activity<WorkoutAttributes>` de ActivityKit cuando corre en iOS.
 - **Fases manuales:** `phase.isManual` (`endDate == startDate`). La Live Activity no debe usar `timerInterval: phase.startDate...phase.endDate` en fases manuales porque colapsaría a 0 s; debe mostrar una insignia de "Manual / Siguiente" o tiempo transcurrido desde `startDate`.
-- **Sesión de audio:** `SoundManager.shared.configureAudioSession()` configura la categoría `.playback` o `.ambient` con `.mixWithOthers` y `.duckOthers`. En la sub-tarea 5 se programará el ciclo de audio en segundo plano para que los tonos se emitan en el momento exacto sin latencia.
+- **Sesión de audio:** `SoundManager.shared.configureAudioSession()` configura la categoría `.playback` o `.ambient` con solo `.mixWithOthers` (decisión del 2026-11-07: la música del usuario no se atenúa; ver `SoundManager.sessionOptions`). En la sub-tarea 5 se programará el ciclo de audio en segundo plano para que los tonos se emitan en el momento exacto sin latencia.
 - **App Intents:** `TimerManager` expone `pause()`, `resume()` y `next()`, listos para ser invocados por App Intents desde la Live Activity y la pantalla de bloqueo.
 
 *Preguntas abiertas para Sub-tarea 5:*
@@ -328,6 +328,7 @@ Recomendación del plan: empezar con la cuenta gratuita para el prototipo. Si la
 *Respuestas a las preguntas abiertas:* (1) compact/minimal muestran la fase actual; expanded y pantalla de bloqueo, fase actual con su ejercicio y «Fase N de M» (no se muestra el total del entrenamiento: con fases manuales no es conocido). (2) Sí, el audio se reactiva solo al terminar la interrupción y al volver a primer plano. (3) En fase manual la isla compacta muestra el tiempo transcurrido y el botón expandido «Listo».
 
 *Limitaciones conocidas:*
+- **Voz con la app suspendida (decisión 2026-11-07: se acepta):** iOS no permite programar voz con antelación, así que suspendida solo suenan los tonos y la notificación.
 - **Vibración (añadida después):** `SoundManager.vibrate()` (`kSystemSoundID_Vibrate`) se dispara en cada cambio de fase y al terminar, con la app viva, incluso en modo silencio. Con la app suspendida no hay vibración propia: solo la que traiga la notificación local. No probada en dispositivo.
 - La voz (`AVSpeechSynthesizer`) sigue hablándose de forma inmediata al detectar el cambio de fase, no programada: con la app suspendida (sin que el bucle de silencio la mantenga viva) solo suenan los tonos programados y la notificación.
 - Con fases manuales, tras la fase manual no se programan tonos ni avisos hasta que el usuario la confirma.
@@ -336,7 +337,7 @@ Recomendación del plan: empezar con la cuenta gratuita para el prototipo. Si la
 
 *Verificación:* `xcodegen generate` OK. `xcodebuild test` (iPhone 17, simulador `3A89B6A7-74FB-41CF-A856-09700149C780`) → **228 tests, 0 fallos** (212 previos + 16 nuevos en `BackgroundPlanningTests`: planificación de tonos, notificaciones y estado de la Live Activity). `xcodebuild build` de CardioFeliz con el widget incrustado: BUILD SUCCEEDED; el aviso de `appintentsmetadataprocessor` persiste solo en la compilación de la app (la extensión sí extrae metadatos de App Intents). **No verificado:** audio en segundo plano, bloqueo, interrupciones, botones de la Live Activity ni apariencia de la isla (ni siquiera en simulador).
 
-**Status.** `[x] completed en código (370 tests unitarios pasan; app y widget compilan; pendiente de pruebas manuales en iPhone real: ios/BACKGROUND-MANUAL-TESTS.md)`
+**Status.** `[x] completed en código (387 tests unitarios pasan; app y widget compilan; pendiente de pruebas manuales en iPhone real: ios/BACKGROUND-MANUAL-TESTS.md)`
 
 ### 6. App de Apple Watch con sesión HealthKit
 
@@ -366,7 +367,9 @@ Recomendación del plan: empezar con la cuenta gratuita para el prototipo. Si la
 
 **Calorías.** `calories_kcal` de la actividad del día pasa a ser la **suma de la energía activa medida por el Watch** en los bloques que tuvieron resumen, más la estimación por MET (con el peso) en los que no. Si ningún bloque tiene medición, se conserva la estimación de siempre. Como el resumen del último bloque llega después de guardar el día, el view model reajusta la actividad cuando entra (`ActivityStore.setMeasuredCalories`, que no pasa por `derive`, que la pisaría). La energía **activa** excluye el gasto en reposo; la estimación MET × peso × horas lo incluye, así que la cifra medida suele ser menor. No es un error.
 
-**Pulso medio:** hoy solo se muestra (modal de fin de bloque y pantalla del Watch); la app iOS todavía **no lo guarda**. La migración ya está preparada: `supabase/migrations/cf_activities_avg_heart_rate.sql` agrega `cf_activities.avg_heart_rate_bpm` (integer, nullable, 20 a 260) y está reflejada en `supabase/schema.sql`. **Pendiente:** aplicarla en Supabase y, después, escribir el campo desde iOS (dominio, mapper, `ActivityInsert` y `setMeasuredCalories`). La PWA no necesita cambios: `toDbActivity` no envía la columna y `toDomainActivity` ignora las desconocidas (fijado en `src/gamification/__tests__/db-mapping-compat.test.ts`).
+**Pulso medio (2026-11-07):** se guarda en `cf_activities.avg_heart_rate_bpm` (migración `supabase/migrations/cf_activities_avg_heart_rate.sql`, ya aplicada). El valor del día es el promedio de los bloques con medición ponderado por su duración (`WatchHeartRate.dayAverage`); los bloques sin Watch no cuentan. Se escribe junto con las calorías medidas (`ActivityStore.setMeasuredHealth`) y se rechaza fuera de 20 a 260, el `check` del servidor. Editar una actividad conserva el pulso. La PWA no necesita cambios: `toDbActivity` no envía la columna y `toDomainActivity` ignora las desconocidas (fijado en `src/gamification/__tests__/db-mapping-compat.test.ts`). La cache SwiftData añadió un campo opcional, así que migra sola.
+
+**Persistencia de resúmenes (2026-11-07):** `WatchSummaryStore` guarda los resúmenes en `UserDefaults` (`cf.watch.summaries.v1`, máximo 50, valores revalidados al cargar) y `WorkoutWorkflowViewModel` guarda los días ya registrados (`cf.watch.savedDays.v1`, máximo 10, se descartan los de más de 48 h). Así, si la app se reinicia entre el fin de la sesión y la llegada del resumen, las calorías y el pulso medidos igual se aplican.
 
 *Respuestas a las preguntas abiertas:* (1) Smart Stack: ver punto 5. (2) Inicio desde el Watch: no, ver punto 4.
 
@@ -430,7 +433,7 @@ Recomendación del plan: empezar con la cuenta gratuita para el prototipo. Si la
 
 **Verificación:** `xcodegen generate` OK. `xcodebuild test` (iPhone 17) → **370 tests, 0 fallos** (291 previos + 79 nuevos de gamificación y analíticas). `xcodebuild build` para CardioFeliz, CardioFelizWidget y CardioFelizWatch limpio sin errores ni warnings.
 
-**Status.** `[x] completed en código (370 tests pasan; app, widget y Watch compilan)`
+**Status.** `[x] completed en código (387 tests pasan; app, widget y Watch compilan)`
 
 ### 9. Pruebas, pulido y distribución
 

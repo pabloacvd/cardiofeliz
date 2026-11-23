@@ -13,6 +13,7 @@ struct AnalyticsView: View {
     @State private var range: AnalyticsRange = .week
     @State private var isWeightSheetOpen: Bool = false
     @State private var isVacationSheetOpen: Bool = false
+    @State private var isSignOutConfirmationOpen: Bool = false
 
     enum AnalyticsRange: String, CaseIterable {
         case week = "Semana"
@@ -507,13 +508,25 @@ struct AnalyticsView: View {
                     onManageVacations: { isVacationSheetOpen = true },
                     isVacationActive: game.vacation.active,
                     onSignOut: {
-                        Task { await session.signOut() }
+                        if activityStore.pendingCount > 0 {
+                            isSignOutConfirmationOpen = true
+                        } else {
+                            Task { await session.signOut() }
+                        }
                     }
                 )
             }
             .padding(16)
         }
         .background(Color.black.ignoresSafeArea())
+        .alert("Tienes cambios sin subir", isPresented: $isSignOutConfirmationOpen) {
+            Button("Cancelar", role: .cancel) {}
+            Button("Cerrar sesión", role: .destructive) {
+                Task { await session.signOut() }
+            }
+        } message: {
+            Text(SignOutWarning.message(pendingCount: activityStore.pendingCount))
+        }
         .sheet(isPresented: $isVacationSheetOpen) {
             VacationSheetView(
                 vacationsStore: vacationsStore,

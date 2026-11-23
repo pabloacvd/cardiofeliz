@@ -7,6 +7,8 @@ struct HomeView: View {
     @ObservedObject var vacationsStore: VacationsStore
     @ObservedObject var achievementsStore: AchievementsStore
     @ObservedObject var session: SessionManager
+    /// Mensaje de `RoutineStore.syncProblem`; nil si no hay problema.
+    var routineProblem: String? = nil
 
     @State private var isCoachDismissed: Bool = false
     @State private var isVacationSheetOpen: Bool = false
@@ -45,7 +47,8 @@ struct HomeView: View {
         weightStore: ProfileWeightStore,
         vacationsStore: VacationsStore,
         achievementsStore: AchievementsStore,
-        session: SessionManager
+        session: SessionManager,
+        routineProblem: String? = nil
     ) {
         self.workflow = workflow
         self.activityStore = activityStore
@@ -53,6 +56,7 @@ struct HomeView: View {
         self.vacationsStore = vacationsStore
         self.achievementsStore = achievementsStore
         self.session = session
+        self.routineProblem = routineProblem
     }
 
     var body: some View {
@@ -66,6 +70,22 @@ struct HomeView: View {
                         workflow.openAnalytics()
                     }
                 )
+
+                if let routineProblem {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text(routineProblem)
+                            .font(.system(size: 12))
+                            .foregroundColor(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.orange.opacity(0.15))
+                    .cornerRadius(12)
+                    .accessibilityElement(children: .combine)
+                }
 
                 // Coach Card
                 if !isCoachDismissed {
@@ -195,6 +215,7 @@ private struct HomeHeaderBar: View {
     @ObservedObject var activityStore: ActivityStore
     @ObservedObject var soundManager = SoundManager.shared
     let onOpenAnalytics: () -> Void
+    @State private var isSignOutConfirmationOpen = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -263,7 +284,11 @@ private struct HomeHeaderBar: View {
 
             // Sign out button
             Button {
-                Task { await session.signOut() }
+                if activityStore.pendingCount > 0 {
+                    isSignOutConfirmationOpen = true
+                } else {
+                    Task { await session.signOut() }
+                }
             } label: {
                 Image(systemName: "rectangle.portrait.and.arrow.right")
                     .font(.system(size: 13, weight: .bold))
@@ -276,6 +301,14 @@ private struct HomeHeaderBar: View {
             .accessibilityLabel("Cerrar sesión")
         }
         .padding(.vertical, 4)
+        .alert("Tienes cambios sin subir", isPresented: $isSignOutConfirmationOpen) {
+            Button("Cancelar", role: .cancel) {}
+            Button("Cerrar sesión", role: .destructive) {
+                Task { await session.signOut() }
+            }
+        } message: {
+            Text(SignOutWarning.message(pendingCount: activityStore.pendingCount))
+        }
     }
 
     private var syncColor: Color {
