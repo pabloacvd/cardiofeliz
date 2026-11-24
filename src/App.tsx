@@ -256,6 +256,7 @@ export default function App() {
               today,
               activities,
               vacations,
+              workoutDays: rutina.dias_entrenamiento,
               weightKg: profileWeight.weightKg,
               weightLoaded: profileWeight.isLoaded,
               weightPromptDismissed: profileWeight.promptDismissed,

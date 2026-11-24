@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Footprints, Flame, Zap, Undo2, SlidersHorizontal, Scale, Trophy, Leaf } from 'lucide-react';
 import type { Activity, VacationPeriod } from '../types/gamification';
+import type { DiaEntrenamiento } from '../types/workout';
 import { GAME_CONFIG, logOutcome, withActivity, type GameContext, type LogOutcome } from '../gamification';
 import { weekProgress } from '../gamification/weeks';
 import type { DateKey } from '../gamification/dates';
@@ -17,6 +18,7 @@ interface QuickLogCardProps {
   today: DateKey;
   activities: readonly Activity[];
   vacations?: readonly VacationPeriod[];
+  workoutDays?: readonly DiaEntrenamiento[];
   weightKg: number | null;
   weightLoaded: boolean;
   weightPromptDismissed: boolean;
@@ -37,7 +39,7 @@ type PendingAction = { kind: 'quick_run' } | { kind: 'active_rest' } | null;
 
 interface LoggedResult {
   activityId: string;
-  kind: 'run' | 'active_rest';
+  kind: 'run' | 'active_rest' | 'workout_day';
   outcome: LogOutcome;
   activity: Activity;
 }
@@ -55,6 +57,7 @@ export const QuickLogCard: React.FC<QuickLogCardProps> = ({
   today,
   activities,
   vacations = [],
+  workoutDays = [],
   weightKg,
   weightLoaded,
   weightPromptDismissed,
@@ -186,12 +189,19 @@ export const QuickLogCard: React.FC<QuickLogCardProps> = ({
     if (!result) return;
     const others = activities.filter((a) => a.id !== result.activityId);
     const before = gameContext(weightKg, others);
+    const dia =
+      fields.exerciseType === 'workout_day'
+        ? workoutDays.find((d) => d.id === fields.dayId)
+        : undefined;
     const updated = updateActivity(
       result.activityId,
       {
+        type: fields.exerciseType === 'workout_day' ? 'workout_day' : 'run',
+        dayId: fields.exerciseType === 'workout_day' ? fields.dayId : null,
+        blocksCompleted: fields.exerciseType === 'workout_day' ? (dia?.bloques.length ?? 3) : null,
         durationSeconds: fields.durationSeconds,
-        distanceKm: fields.distanceKm,
-        runLocation: fields.runLocation,
+        distanceKm: fields.exerciseType === 'run' ? fields.distanceKm : null,
+        runLocation: fields.exerciseType === 'run' ? fields.runLocation : null,
         feeling: fields.feeling,
         occurredOn: fields.occurredOn,
       },
@@ -200,26 +210,49 @@ export const QuickLogCard: React.FC<QuickLogCardProps> = ({
     setSheet(null);
     if (updated) {
       const outcome = logOutcome(before, withActivity(before, updated));
-      setResult({ ...result, activity: updated, outcome });
+      setResult({
+        ...result,
+        activity: updated,
+        outcome,
+        kind: updated.type === 'workout_day' ? 'workout_day' : 'run',
+      });
       onOutcome(outcome, true);
     }
   };
 
   const handleDetailed = (fields: RunFields) => {
     setSheet(null);
-    save(
-      {
-        type: 'run',
-        occurredOn: fields.occurredOn,
-        startedAt: fields.occurredOn === today ? new Date().toISOString() : null,
-        durationSeconds: fields.durationSeconds,
-        distanceKm: fields.distanceKm,
-        runLocation: fields.runLocation,
-        feeling: fields.feeling,
-      },
-      'run',
-      weightKg,
-    );
+    if (fields.exerciseType === 'workout_day') {
+      const dia = workoutDays.find((d) => d.id === fields.dayId);
+      save(
+        {
+          type: 'workout_day',
+          occurredOn: fields.occurredOn,
+          startedAt: fields.occurredOn === today ? new Date().toISOString() : null,
+          durationSeconds: fields.durationSeconds,
+          dayId: fields.dayId,
+          blocksCompleted: dia ? dia.bloques.length : 3,
+          roundsTotal: null,
+          feeling: fields.feeling,
+        },
+        'workout_day',
+        weightKg,
+      );
+    } else {
+      save(
+        {
+          type: 'run',
+          occurredOn: fields.occurredOn,
+          startedAt: fields.occurredOn === today ? new Date().toISOString() : null,
+          durationSeconds: fields.durationSeconds,
+          distanceKm: fields.distanceKm,
+          runLocation: fields.runLocation,
+          feeling: fields.feeling,
+        },
+        'run',
+        weightKg,
+      );
+    }
   };
 
   const goalReached = week.runs >= week.runsGoal;
@@ -327,7 +360,11 @@ export const QuickLogCard: React.FC<QuickLogCardProps> = ({
           <div className="flex items-center gap-2 text-emerald-300">
             <Trophy className="w-4 h-4" aria-hidden="true" />
             <span className="text-sm font-extrabold">
-              {result.kind === 'run' ? '¡Corrida registrada!' : '¡Descanso activo registrado!'}
+              {result.kind === 'run'
+                ? '¡Corrida registrada!'
+                : result.kind === 'workout_day'
+                ? '¡Entrenamiento registrado!'
+                : '¡Descanso activo registrado!'}
             </span>
           </div>
 
@@ -352,8 +389,12 @@ export const QuickLogCard: React.FC<QuickLogCardProps> = ({
               {result.outcome.weekRuns >= result.outcome.runsGoal ? ' · ¡meta cumplida!' : ''}
             </p>
           )}
-          <div className={`grid gap-2 ${result.kind === 'run' ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {result.kind === 'run' && (
+          <div
+            className={`grid gap-2 ${
+              result.kind === 'run' || result.kind === 'workout_day' ? 'grid-cols-2' : 'grid-cols-1'
+            }`}
+          >
+            {(result.kind === 'run' || result.kind === 'workout_day') && (
               <button
                 type="button"
                 onClick={() => setSheet('adjust')}
@@ -385,11 +426,12 @@ export const QuickLogCard: React.FC<QuickLogCardProps> = ({
         />
       )}
 
-      {sheet === 'adjust' && result && result.kind === 'run' && (
+      {sheet === 'adjust' && result && (result.kind === 'run' || result.kind === 'workout_day') && (
         <RunSheet
-          title="Ajustar corrida"
+          title={result.kind === 'workout_day' ? 'Ajustar entrenamiento' : 'Ajustar corrida'}
           submitLabel="Guardar cambios"
           today={today}
+          workoutDays={workoutDays}
           initial={runFormFromActivity(result.activity)}
           onSubmit={handleAdjust}
           onClose={() => setSheet(null)}
@@ -398,10 +440,11 @@ export const QuickLogCard: React.FC<QuickLogCardProps> = ({
 
       {sheet === 'detailed' && (
         <RunSheet
-          title="Registrar corrida"
-          submitLabel="Guardar corrida"
+          title="Registrar corrida u otro ejercicio"
+          submitLabel="Guardar"
           today={today}
-          initial={defaultRunForm(today)}
+          workoutDays={workoutDays}
+          initial={defaultRunForm(today, workoutDays[0]?.id)}
           onSubmit={handleDetailed}
           onClose={() => setSheet(null)}
         />

@@ -34,7 +34,15 @@ describe('validateRunForm', () => {
     const r = validateRunForm(defaultRunForm(TODAY), TODAY);
     expect(r).toEqual({
       ok: true,
-      fields: { durationSeconds: 1800, distanceKm: null, runLocation: null, feeling: null, occurredOn: TODAY },
+      fields: {
+        exerciseType: 'run',
+        dayId: null,
+        durationSeconds: 1800,
+        distanceKm: null,
+        runLocation: null,
+        feeling: null,
+        occurredOn: TODAY,
+      },
     });
   });
 
@@ -79,7 +87,56 @@ describe('validateRunForm', () => {
     const r = validateRunForm(runFormFromActivity(a), TODAY);
     expect(r).toEqual({
       ok: true,
-      fields: { durationSeconds: 2700, distanceKm: 6.5, runLocation: 'calle', feeling: 5, occurredOn: '2026-03-10' },
+      fields: {
+        exerciseType: 'run',
+        dayId: null,
+        durationSeconds: 2700,
+        distanceKm: 6.5,
+        runLocation: 'calle',
+        feeling: 5,
+        occurredOn: '2026-03-10',
+      },
+    });
+  });
+
+  it('valida día de entrenamiento con dayId y rechaza si falta dayId', () => {
+    const invalid = validateRunForm(
+      { ...defaultRunForm(TODAY), exerciseType: 'workout_day', dayId: null },
+      TODAY,
+    );
+    expect(invalid.ok).toBe(false);
+    if (!invalid.ok) expect(invalid.errors.dayId).toBeDefined();
+
+    const valid = validateRunForm(
+      { ...defaultRunForm(TODAY), exerciseType: 'workout_day', dayId: 'dia_2', minutes: '45', feeling: 4 },
+      TODAY,
+    );
+    expect(valid).toEqual({
+      ok: true,
+      fields: {
+        exerciseType: 'workout_day',
+        dayId: 'dia_2',
+        durationSeconds: 2700,
+        distanceKm: null,
+        runLocation: null,
+        feeling: 4,
+        occurredOn: TODAY,
+      },
+    });
+
+    const w = workout('2026-03-10', { durationSeconds: 50 * 60, dayId: 'dia_3', feeling: 5 });
+    const fromW = validateRunForm(runFormFromActivity(w), TODAY);
+    expect(fromW).toEqual({
+      ok: true,
+      fields: {
+        exerciseType: 'workout_day',
+        dayId: 'dia_3',
+        durationSeconds: 3000,
+        distanceKm: null,
+        runLocation: null,
+        feeling: 5,
+        occurredOn: '2026-03-10',
+      },
     });
   });
 });

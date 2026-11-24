@@ -9,7 +9,11 @@ export const RUN_MAX_KM = 100;
 /** Cuántos días hacia atrás se puede registrar una corrida. */
 export const MAX_BACKDATE_DAYS = 30;
 
+export type FormExerciseType = 'run' | 'workout_day';
+
 export interface RunFormValues {
+  exerciseType?: FormExerciseType;
+  dayId?: string | null;
   minutes: string;
   km: string;
   location: RunLocation | null;
@@ -17,9 +21,11 @@ export interface RunFormValues {
   date: DateKey;
 }
 
-export type RunFormErrors = Partial<Record<'minutes' | 'km' | 'date', string>>;
+export type RunFormErrors = Partial<Record<'minutes' | 'km' | 'date' | 'dayId', string>>;
 
 export interface RunFields {
+  exerciseType: FormExerciseType;
+  dayId: string | null;
   durationSeconds: number;
   distanceKm: number | null;
   runLocation: RunLocation | null;
@@ -29,12 +35,22 @@ export interface RunFields {
 
 export type RunFormResult = { ok: true; fields: RunFields } | { ok: false; errors: RunFormErrors };
 
-export function defaultRunForm(today: DateKey): RunFormValues {
-  return { minutes: String(GAME_CONFIG.defaultRunMinutes), km: '', location: null, feeling: null, date: today };
+export function defaultRunForm(today: DateKey, defaultDayId?: string | null): RunFormValues {
+  return {
+    exerciseType: 'run',
+    dayId: defaultDayId ?? null,
+    minutes: String(GAME_CONFIG.defaultRunMinutes),
+    km: '',
+    location: null,
+    feeling: null,
+    date: today,
+  };
 }
 
 export function runFormFromActivity(a: Activity): RunFormValues {
   return {
+    exerciseType: a.type === 'workout_day' ? 'workout_day' : 'run',
+    dayId: a.dayId ?? null,
     minutes: String(Math.max(1, Math.round(a.durationSeconds / 60))),
     km: a.distanceKm ? String(a.distanceKm) : '',
     location: a.runLocation ?? null,
@@ -59,6 +75,7 @@ export function parseWeight(text: string): number | null {
 
 export function validateRunForm(values: RunFormValues, today: DateKey): RunFormResult {
   const errors: RunFormErrors = {};
+  const exerciseType: FormExerciseType = values.exerciseType ?? 'run';
 
   const minutesText = values.minutes.trim();
   const minutes = /^\d+$/.test(minutesText) ? Number(minutesText) : null;
@@ -67,7 +84,7 @@ export function validateRunForm(values: RunFormValues, today: DateKey): RunFormR
   }
 
   let distanceKm: number | null = null;
-  if (values.km.trim() !== '') {
+  if (exerciseType === 'run' && values.km.trim() !== '') {
     const km = parseDecimal(values.km);
     if (km === null || km < RUN_MIN_KM || km > RUN_MAX_KM) {
       errors.km = `Ingresá km entre ${RUN_MIN_KM} y ${RUN_MAX_KM} (o dejalo vacío).`;
@@ -76,15 +93,21 @@ export function validateRunForm(values: RunFormValues, today: DateKey): RunFormR
     }
   }
 
+  if (exerciseType === 'workout_day' && !values.dayId) {
+    errors.dayId = 'Seleccioná un día de entrenamiento.';
+  }
+
   if (!isValidDateKey(values.date)) {
     errors.date = 'Elegí una fecha válida.';
   } else if (values.date > today) {
-    errors.date = 'No se puede registrar una corrida en el futuro.';
+    errors.date = exerciseType === 'workout_day'
+      ? 'No se puede registrar un entrenamiento en el futuro.'
+      : 'No se puede registrar una corrida en el futuro.';
   } else if (values.date < addDays(today, -MAX_BACKDATE_DAYS)) {
     errors.date = `Solo se puede registrar hasta ${MAX_BACKDATE_DAYS} días atrás.`;
   }
 
-  if (errors.minutes || errors.km || errors.date || minutes === null) return { ok: false, errors };
+  if (errors.minutes || errors.km || errors.date || errors.dayId || minutes === null) return { ok: false, errors };
 
   const feeling =
     values.feeling !== null && Number.isInteger(values.feeling) && values.feeling >= 1 && values.feeling <= 5
@@ -94,9 +117,11 @@ export function validateRunForm(values: RunFormValues, today: DateKey): RunFormR
   return {
     ok: true,
     fields: {
+      exerciseType,
+      dayId: exerciseType === 'workout_day' ? (values.dayId ?? null) : null,
       durationSeconds: minutes * 60,
-      distanceKm,
-      runLocation: values.location,
+      distanceKm: exerciseType === 'run' ? distanceKm : null,
+      runLocation: exerciseType === 'run' ? values.location : null,
       feeling,
       occurredOn: values.date,
     },

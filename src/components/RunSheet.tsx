@@ -9,13 +9,14 @@ import {
   type RunFormErrors,
   type RunFormValues,
 } from '../utils/activityForm';
-import type { RunLocation } from '../types/gamification';
+import type { DiaEntrenamiento } from '../types/workout';
 
 interface RunSheetProps {
   title: string;
-  submitLabel: string;
+  submitLabel?: string;
   today: DateKey;
   initial: RunFormValues;
+  workoutDays?: readonly DiaEntrenamiento[];
   onSubmit: (fields: RunFields) => void;
   onClose: () => void;
 }
@@ -26,11 +27,6 @@ const FEELINGS: { value: number; emoji: string; label: string }[] = [
   { value: 3, emoji: '😐', label: 'Normal' },
   { value: 4, emoji: '🙂', label: 'Bien' },
   { value: 5, emoji: '🤩', label: 'Excelente' },
-];
-
-const LOCATIONS: { value: RunLocation; label: string }[] = [
-  { value: 'cinta', label: 'Cinta' },
-  { value: 'calle', label: 'Calle' },
 ];
 
 const INPUT_CLASS =
@@ -45,7 +41,15 @@ function chipClass(selected: boolean): string {
   }`;
 }
 
-export const RunSheet: React.FC<RunSheetProps> = ({ title, submitLabel, today, initial, onSubmit, onClose }) => {
+export const RunSheet: React.FC<RunSheetProps> = ({
+  title,
+  submitLabel,
+  today,
+  initial,
+  workoutDays = [],
+  onSubmit,
+  onClose,
+}) => {
   const [values, setValues] = useState<RunFormValues>(initial);
   const [errors, setErrors] = useState<RunFormErrors>({});
 
@@ -53,6 +57,8 @@ export const RunSheet: React.FC<RunSheetProps> = ({ title, submitLabel, today, i
     setValues((v) => ({ ...v, ...patch }));
     setErrors({});
   };
+
+  const isWorkoutDay = values.exerciseType === 'workout_day';
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,10 +70,49 @@ export const RunSheet: React.FC<RunSheetProps> = ({ title, submitLabel, today, i
     onSubmit(result.fields);
   };
 
+  const buttonText =
+    submitLabel ?? (isWorkoutDay ? 'Guardar entrenamiento' : 'Guardar corrida');
+
   return (
     <BottomSheet title={title} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4" noValidate>
-        <div className="grid grid-cols-2 gap-3">
+        {!isWorkoutDay ? (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="run-minutes" className={LABEL_CLASS}>
+                Minutos
+              </label>
+              <input
+                id="run-minutes"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                value={values.minutes}
+                onChange={(e) => update({ minutes: e.target.value })}
+                aria-invalid={errors.minutes !== undefined}
+                aria-describedby={errors.minutes ? 'run-minutes-error' : undefined}
+                className={INPUT_CLASS}
+              />
+            </div>
+            <div>
+              <label htmlFor="run-km" className={LABEL_CLASS}>
+                Km (opcional)
+              </label>
+              <input
+                id="run-km"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                value={values.km}
+                onChange={(e) => update({ km: e.target.value })}
+                aria-invalid={errors.km !== undefined}
+                aria-describedby={errors.km ? 'run-km-error' : undefined}
+                placeholder="Ej: 4,5"
+                className={INPUT_CLASS}
+              />
+            </div>
+          </div>
+        ) : (
           <div>
             <label htmlFor="run-minutes" className={LABEL_CLASS}>
               Minutos
@@ -84,50 +129,76 @@ export const RunSheet: React.FC<RunSheetProps> = ({ title, submitLabel, today, i
               className={INPUT_CLASS}
             />
           </div>
-          <div>
-            <label htmlFor="run-km" className={LABEL_CLASS}>
-              Km (opcional)
-            </label>
-            <input
-              id="run-km"
-              type="text"
-              inputMode="decimal"
-              autoComplete="off"
-              value={values.km}
-              onChange={(e) => update({ km: e.target.value })}
-              aria-invalid={errors.km !== undefined}
-              aria-describedby={errors.km ? 'run-km-error' : undefined}
-              placeholder="Ej: 4,5"
-              className={INPUT_CLASS}
-            />
-          </div>
-        </div>
+        )}
         {errors.minutes && (
           <p id="run-minutes-error" role="alert" className="text-xs text-red-400">
             {errors.minutes}
           </p>
         )}
-        {errors.km && (
+        {errors.km && !isWorkoutDay && (
           <p id="run-km-error" role="alert" className="text-xs text-red-400">
             {errors.km}
           </p>
         )}
 
         <fieldset>
-          <legend className={LABEL_CLASS}>Dónde corriste (opcional)</legend>
+          <legend className={LABEL_CLASS}>Tipo de ejercicio</legend>
           <div className="flex gap-2">
-            {LOCATIONS.map((loc) => (
-              <button
-                key={loc.value}
-                type="button"
-                aria-pressed={values.location === loc.value}
-                onClick={() => update({ location: values.location === loc.value ? null : loc.value })}
-                className={chipClass(values.location === loc.value)}
-              >
-                {loc.label}
-              </button>
-            ))}
+            <button
+              type="button"
+              aria-pressed={!isWorkoutDay}
+              onClick={() => update({ exerciseType: 'run' })}
+              className={chipClass(!isWorkoutDay)}
+            >
+              Corrida
+            </button>
+            <button
+              type="button"
+              aria-pressed={isWorkoutDay}
+              onClick={() =>
+                update({
+                  exerciseType: 'workout_day',
+                  dayId: values.dayId ?? workoutDays[0]?.id ?? null,
+                })
+              }
+              className={chipClass(isWorkoutDay)}
+            >
+              Día de entrenamiento
+            </button>
           </div>
+
+          {isWorkoutDay && workoutDays.length > 0 && (
+            <div className="space-y-1.5 mt-2.5">
+              {workoutDays.map((dia) => {
+                const isSelected = values.dayId === dia.id;
+                return (
+                  <button
+                    key={dia.id}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => update({ dayId: dia.id })}
+                    className={`w-full text-left px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-colors flex items-center justify-between gap-2 ${
+                      isSelected
+                        ? 'bg-cardio-primary/20 border-cardio-primary text-cardio-primary'
+                        : 'bg-black border-zinc-700 text-zinc-300 hover:border-zinc-500 active:bg-surface-800'
+                    }`}
+                  >
+                    <span className="truncate">{dia.nombre}</span>
+                    {isSelected && (
+                      <span className="text-cardio-primary text-sm flex-shrink-0" aria-hidden="true">
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {errors.dayId && isWorkoutDay && (
+            <p id="run-dayId-error" role="alert" className="text-xs text-red-400 mt-1.5">
+              {errors.dayId}
+            </p>
+          )}
         </fieldset>
 
         <fieldset>
@@ -174,7 +245,7 @@ export const RunSheet: React.FC<RunSheetProps> = ({ title, submitLabel, today, i
           type="submit"
           className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cardio-primary to-emerald-400 text-black font-extrabold text-sm active:scale-[0.98] transition-transform"
         >
-          {submitLabel}
+          {buttonText}
         </button>
       </form>
     </BottomSheet>

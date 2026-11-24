@@ -75,7 +75,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
       </div>
 
       {/* Registro rápido de corrida / descanso activo */}
-      <QuickLogCard {...quickLog} />
+      <QuickLogCard {...quickLog} workoutDays={quickLog.workoutDays ?? rutina.dias_entrenamiento} />
 
       {/* Botón Mi rutina */}
       {onOpenRoutineSettings && (
